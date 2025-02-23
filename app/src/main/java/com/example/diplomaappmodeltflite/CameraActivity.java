@@ -35,6 +35,7 @@ import java.util.List;
 
 public class CameraActivity extends AppCompatActivity {
 
+    private OverlayView overlayView;
     private PreviewView previewView;
     private ObjectDetectorHelper objectDetectorHelper;
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
@@ -50,6 +51,9 @@ public class CameraActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
+
+        // added overlay
+        overlayView = findViewById(R.id.overlayView);
 
         previewView = findViewById(R.id.cameraPreview);
         objectDetectorHelper = new ObjectDetectorHelper(this);
@@ -209,6 +213,8 @@ public class CameraActivity extends AppCompatActivity {
 
         List<DetectionResult> detections = parseYoloOutput(outputBuffer);
         List<DetectionResult> finalDetections = applyNMS(detections);
+
+        overlayView.setResults(finalDetections); // Update visualization
 
         for (DetectionResult det : finalDetections) {
             Log.d("NMS", "Class=" + det.detectedClass +
