@@ -47,6 +47,9 @@ public class CameraActivity extends AppCompatActivity {
 
     private static final float NMS_THRESHOLD = 0.5f;
 
+    private static final int FRAME_SKIP_INTERVAL = 5; // Run inference every 5th frame
+    private int frameCounter = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -140,12 +143,15 @@ public class CameraActivity extends AppCompatActivity {
             imageProxy.close();
             return;
         }
+        // Increment the frame counter
+        frameCounter++;
 
-        Bitmap bitmap = toBitmap(image);
-        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
+        if (frameCounter % FRAME_SKIP_INTERVAL == 0) {
+            Bitmap bitmap = toBitmap(image);
+            Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
 
-        // TODO: Here will run inference
-        runInference(resizedBitmap);
+            runInference(resizedBitmap);
+        }
 
         imageProxy.close();
     }
