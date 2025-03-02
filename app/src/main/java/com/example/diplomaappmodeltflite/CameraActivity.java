@@ -11,6 +11,8 @@ import android.media.Image;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
+import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
@@ -39,22 +41,30 @@ public class CameraActivity extends AppCompatActivity {
     private PreviewView previewView;
     private ObjectDetectorHelper objectDetectorHelper;
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
-
+    private ObjectTracker objectTracker = new ObjectTracker();
 
     private static final int NUM_CLASSES = 80;
-    private static final float CONFIDENCE_THRESHOLD = 0.3f; // You can adjust
-    private static final int IMAGE_SIZE = 640;
+    private static final float CONFIDENCE_THRESHOLD = 0.3f;
+    private static final int IMAGE_SIZE = 640; //upd
 
     private static final float NMS_THRESHOLD = 0.5f;
 
     private static final int FRAME_SKIP_INTERVAL = 5; // Run inference every 5th frame
     private int frameCounter = 0;
 
+    //to calculate fps
+    private TextView fpsTextView;
+    private long lastFrameTime = 0;
+    private float fps = 0;
+    private int frameStackSize = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
 
+        //display fps
+        fpsTextView = findViewById(R.id.fpsTextView);
         // added overlay
         overlayView = findViewById(R.id.overlayView);
 
@@ -71,6 +81,8 @@ public class CameraActivity extends AppCompatActivity {
                 Log.e("CameraX", "Camera provider error", e);
             }
         }, ContextCompat.getMainExecutor(this));
+        Log.d("FPS", "fpsTextView initialized: " + (fpsTextView != null));
+
     }
 
     private void bindPreview(@NonNull ProcessCameraProvider cameraProvider) {
@@ -78,7 +90,7 @@ public class CameraActivity extends AppCompatActivity {
                 .setResolutionSelector(new ResolutionSelector.Builder()
                         .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
                         .setResolutionStrategy(new ResolutionStrategy(
-                                new Size(1280, 720),
+                                new Size(1280, 720), //change from 1280x720 to 256 144
                                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
                         .build())
                 .build();
@@ -95,7 +107,7 @@ public class CameraActivity extends AppCompatActivity {
                 .setResolutionSelector(new ResolutionSelector.Builder()
                         .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
                         .setResolutionStrategy(new ResolutionStrategy(
-                                new Size(640, 640),
+                                new Size(640, 640), // changed from 640 640 to 256 144
                                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
                         .build())
                 .build();
@@ -143,17 +155,38 @@ public class CameraActivity extends AppCompatActivity {
             imageProxy.close();
             return;
         }
+        // Calculate FPS
+        long currentTime = System.nanoTime();
+        if (lastFrameTime != 0) {
+            fps = 1.0f / ((currentTime - lastFrameTime) / 1_000_000_000f);
+        }
+        lastFrameTime = currentTime;
+
+        // Update frame stack size (queue of frames waiting for processing)
+        frameStackSize = imageProxy.getPlanes()[0].getBuffer().remaining();
         // Increment the frame counter
         frameCounter++;
 
         if (frameCounter % FRAME_SKIP_INTERVAL == 0) {
             Bitmap bitmap = toBitmap(image);
             Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
+            // for now reducing resolution to achieve higher performance
+            //Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 320, 320, true);
 
             runInference(resizedBitmap);
         }
 
         imageProxy.close();
+
+        // Update UI with FPS & Stack Size
+        runOnUiThread(() -> {
+            if (fpsTextView != null) {
+                fpsTextView.setText(String.format("FPS: %.2f\nStack: %d", fps, frameStackSize));
+            } else {
+                Log.e("FPS", "fpsTextView is NULL!");
+            }
+        });
+
     }
     private Bitmap toBitmap(Image image) {
         YuvImage yuvImage = toYuvImage(image);
@@ -223,14 +256,38 @@ public class CameraActivity extends AppCompatActivity {
         overlayView.setResults(finalDetections); // Update visualization
 
         for (DetectionResult det : finalDetections) {
-            Log.d("NMS", "Class=" + det.detectedClass +
+
+            float objectCenterX = (det.left + det.right) / 2;
+            float imageWidth = bitmap.getWidth();
+
+            // Normalize X position (-1 = left, 0 = center, 1 = right)
+            float normalizedX = (objectCenterX - (imageWidth / 2)) / (imageWidth / 2);
+
+            // Approximate Camera FOV
+            float cameraFOV = 60.0f;
+            float angle = (normalizedX * cameraFOV) / 2;
+
+            // Determine direction
+            String direction;
+            if (angle < -10) {
+                direction = "Left";
+            } else if (angle > 10) {
+                direction = "Right";
+            } else {
+                direction = "Center";
+            }
+
+            Log.d("NMS", "ID=" + det.objectId +
+                    ", Class=" + det.detectedClass +
+                    ", Angle=" + angle + "°" +
+                    ", Direction=" + direction +
                     ", Conf=" + det.confidence +
                     ", Box=[" + det.left + "," + det.top + "," + det.right + "," + det.bottom + "]");
         }
     }
 
     private float[][][][] bitmapToInputArray(Bitmap bitmap) {
-        int inputSize = 640;
+        int inputSize = 640; //changed to 320 from 640
         float[][][][] input = new float[1][inputSize][inputSize][3];
 
         for (int y = 0; y < inputSize; y++) {
@@ -250,11 +307,14 @@ public class CameraActivity extends AppCompatActivity {
     private List<DetectionResult> parseYoloOutput(float[][][] output) {
         List<DetectionResult> results = new ArrayList<>();
 
+        float imageWidth = previewView.getWidth();  // Get actual preview width
+        float imageHeight = previewView.getHeight(); // Get actual preview height
+
         for (int i = 0; i < output[0][0].length; i++) {
-            float x = output[0][0][i];
-            float y = output[0][1][i];
-            float w = output[0][2][i];
-            float h = output[0][3][i];
+            float x = output[0][0][i];  // Normalized center x (0-1)
+            float y = output[0][1][i];  // Normalized center y (0-1)
+            float w = output[0][2][i];  // Normalized width (0-1)
+            float h = output[0][3][i];  // Normalized height (0-1)
 
             int bestClass = -1;
             float bestConfidence = -1f;
@@ -267,12 +327,18 @@ public class CameraActivity extends AppCompatActivity {
             }
 
             if (bestConfidence > CONFIDENCE_THRESHOLD) {
-                float left = (x - w / 2f) * IMAGE_SIZE;
-                float top = (y - h / 2f) * IMAGE_SIZE;
-                float right = (x + w / 2f) * IMAGE_SIZE;
-                float bottom = (y + h / 2f) * IMAGE_SIZE;
+                // Correctly scale the bounding boxes
+                float left = (x - w / 2f) * imageWidth;
+                float top = (y - h / 2f) * imageHeight;
+                float right = (x + w / 2f) * imageWidth;
+                float bottom = (y + h / 2f) * imageHeight;
 
-                results.add(new DetectionResult(bestClass, bestConfidence, left, top, right, bottom));
+                // Get persistent object ID using centroid tracking
+                float centerX = (left + right) / 2;
+                float centerY = (top + bottom) / 2;
+                int objectId = objectTracker.getTrackedObjectId(centerX, centerY);
+
+                results.add(new DetectionResult(objectId, bestClass, bestConfidence, left, top, right, bottom));
             }
         }
 

@@ -40,12 +40,21 @@ public class OverlayView extends View {
         super.onDraw(canvas);
         if (results != null) {
             for (DetectionResult result : results) {
+                // Draw bounding box
                 canvas.drawRect(result.left, result.top, result.right, result.bottom, boxPaint);
 
+                // Display label: "#ID Class (Confidence)"
                 String className = CocoLabels.LABELS[result.detectedClass];
-                String label = className + " (" + String.format("%.2f", result.confidence) + ")";
+                String label = "#" + result.objectId + " " + className +
+                        " (" + String.format("%.1f", result.confidence * 100) + "%)";
 
-                canvas.drawText(label, result.left, result.top - 10, textPaint);
+                // Draw background for label
+                float textWidth = textPaint.measureText(label);
+                float textSize = textPaint.getTextSize();
+                canvas.drawRect(result.left, result.top - textSize - 10, result.left + textWidth + 10, result.top, boxPaint);
+
+                // Draw text label
+                canvas.drawText(label, result.left + 5, result.top - 10, textPaint);
             }
         }
     }
