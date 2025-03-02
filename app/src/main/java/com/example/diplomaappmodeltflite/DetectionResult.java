@@ -1,12 +1,14 @@
 package com.example.diplomaappmodeltflite;
 
 public class DetectionResult {
+    public int objectId; // Unique ID for tracking
     public final int detectedClass;
     public final float confidence;
     public final float left, top, right, bottom;
 
-    public DetectionResult(int detectedClass, float confidence,
+    public DetectionResult(int objectId, int detectedClass, float confidence,
                            float left, float top, float right, float bottom) {
+        this.objectId = objectId;
         this.detectedClass = detectedClass;
         this.confidence = confidence;
         this.left = left;
