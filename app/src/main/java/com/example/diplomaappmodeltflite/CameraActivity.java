@@ -26,10 +26,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import androidx.camera.core.resolutionselector.ResolutionSelector;
 import androidx.camera.core.resolutionselector.AspectRatioStrategy;
 import androidx.camera.core.resolutionselector.ResolutionStrategy;
-
-
+import android.media.AudioAttributes;
+import android.media.Image;
+import android.media.SoundPool;
 import org.tensorflow.lite.Interpreter;
-
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -62,6 +62,9 @@ public class CameraActivity extends AppCompatActivity {
 
     // Declare the ExecutorService
     private ExecutorService inferenceExecutor;
+    //sound setting
+    private SoundPool soundPool;
+    private int soundLeft, soundRight, soundCenter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +81,19 @@ public class CameraActivity extends AppCompatActivity {
 
         previewView = findViewById(R.id.cameraPreview);
         objectDetectorHelper = new ObjectDetectorHelper(this);
+
+        //add logic for sound
+        soundPool = new SoundPool.Builder()
+                .setMaxStreams(3)
+                .setAudioAttributes(new AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build())
+                .build();
+        //TODO: change sounds for different directions
+        soundLeft = soundPool.load(this, R.raw.notification, 1);
+        soundRight = soundPool.load(this, R.raw.notification, 1);
+        soundCenter = soundPool.load(this, R.raw.notification, 1);
 
         cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 
@@ -156,6 +172,7 @@ public class CameraActivity extends AppCompatActivity {
         if (inferenceExecutor != null) {
             inferenceExecutor.shutdown();
         }
+        soundPool.release();
     }
 
     private void processImage(ImageProxy imageProxy) {
@@ -184,9 +201,9 @@ public class CameraActivity extends AppCompatActivity {
             // for now reducing resolution to achieve higher performance
             //Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 320, 320, true);
 
-            //runInference(resizedBitmap);
+            runInference(resizedBitmap);
             // Run inference in the background
-            inferenceExecutor.execute(() -> runInference(resizedBitmap));
+            //inferenceExecutor.execute(() -> runInference(resizedBitmap));
         }
 
         imageProxy.close();
@@ -266,13 +283,13 @@ public class CameraActivity extends AppCompatActivity {
         List<DetectionResult> detections = parseYoloOutput(outputBuffer);
         List<DetectionResult> finalDetections = applyNMS(detections);
 
-        //overlayView.setResults(finalDetections); // Update visualization
+        overlayView.setResults(finalDetections); // Update visualization
 
-        // Safely update UI on the main thread
-        runOnUiThread(() -> {
+        // Safely update UI on the main thread (async part)
+        /*runOnUiThread(() -> {
             overlayView.setResults(finalDetections);
             Log.d("Inference", "Updated UI with new bounding boxes.");
-        });
+        });*/
 
         for (DetectionResult det : finalDetections) {
 
@@ -288,13 +305,22 @@ public class CameraActivity extends AppCompatActivity {
 
             // Determine direction
             String direction;
+            int soundToPlay;
             if (angle < -10) {
                 direction = "Left";
+                soundToPlay = soundLeft;
+                soundPool.play(soundLeft, 1.0f, 0.2f, 1, 0, 1.0f);  // Louder on left ear
             } else if (angle > 10) {
                 direction = "Right";
+                soundToPlay = soundRight;
+                soundPool.play(soundRight, 0.2f, 1.0f, 1, 0, 1.0f);  // Louder on right ear
             } else {
                 direction = "Center";
+                soundToPlay = soundCenter;
+                soundPool.play(soundCenter, 1.0f, 1.0f, 1, 0, 1.0f);  // Equal volume
             }
+            // Play sound
+            //soundPool.play(soundToPlay, 1.0f, 1.0f, 1, 0, 1.0f);
 
             Log.d("NMS", "ID=" + det.objectId +
                     ", Class=" + det.detectedClass +
