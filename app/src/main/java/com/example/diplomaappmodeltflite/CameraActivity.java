@@ -34,6 +34,8 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class CameraActivity extends AppCompatActivity {
 
@@ -58,9 +60,15 @@ public class CameraActivity extends AppCompatActivity {
     private float fps = 0;
     private int frameStackSize = 0;
 
+    // Declare the ExecutorService
+    private ExecutorService inferenceExecutor;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Initialize the executor for running inference asynchronously
+        inferenceExecutor = Executors.newSingleThreadExecutor();
+
         setContentView(R.layout.activity_camera);
 
         //display fps
@@ -81,7 +89,6 @@ public class CameraActivity extends AppCompatActivity {
                 Log.e("CameraX", "Camera provider error", e);
             }
         }, ContextCompat.getMainExecutor(this));
-        Log.d("FPS", "fpsTextView initialized: " + (fpsTextView != null));
 
     }
 
@@ -145,6 +152,10 @@ public class CameraActivity extends AppCompatActivity {
         if (objectDetectorHelper != null) {
             objectDetectorHelper.close();
         }
+        // Shutdown the executor to prevent memory leaks
+        if (inferenceExecutor != null) {
+            inferenceExecutor.shutdown();
+        }
     }
 
     private void processImage(ImageProxy imageProxy) {
@@ -173,7 +184,9 @@ public class CameraActivity extends AppCompatActivity {
             // for now reducing resolution to achieve higher performance
             //Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 320, 320, true);
 
-            runInference(resizedBitmap);
+            //runInference(resizedBitmap);
+            // Run inference in the background
+            inferenceExecutor.execute(() -> runInference(resizedBitmap));
         }
 
         imageProxy.close();
@@ -253,7 +266,13 @@ public class CameraActivity extends AppCompatActivity {
         List<DetectionResult> detections = parseYoloOutput(outputBuffer);
         List<DetectionResult> finalDetections = applyNMS(detections);
 
-        overlayView.setResults(finalDetections); // Update visualization
+        //overlayView.setResults(finalDetections); // Update visualization
+
+        // Safely update UI on the main thread
+        runOnUiThread(() -> {
+            overlayView.setResults(finalDetections);
+            Log.d("Inference", "Updated UI with new bounding boxes.");
+        });
 
         for (DetectionResult det : finalDetections) {
 
