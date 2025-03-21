@@ -218,6 +218,7 @@ public class CameraActivity extends AppCompatActivity {
         });
 
     }
+
     private Bitmap toBitmap(Image image) {
         YuvImage yuvImage = toYuvImage(image);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -308,15 +309,12 @@ public class CameraActivity extends AppCompatActivity {
             int soundToPlay;
             if (angle < -10) {
                 direction = "Left";
-                soundToPlay = soundLeft;
                 soundPool.play(soundLeft, 1.0f, 0.2f, 1, 0, 1.0f);  // Louder on left ear
             } else if (angle > 10) {
                 direction = "Right";
-                soundToPlay = soundRight;
                 soundPool.play(soundRight, 0.2f, 1.0f, 1, 0, 1.0f);  // Louder on right ear
             } else {
                 direction = "Center";
-                soundToPlay = soundCenter;
                 soundPool.play(soundCenter, 1.0f, 1.0f, 1, 0, 1.0f);  // Equal volume
             }
             // Play sound
