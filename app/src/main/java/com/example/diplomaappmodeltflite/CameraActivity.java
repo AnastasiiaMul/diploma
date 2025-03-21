@@ -34,6 +34,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,6 +42,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private OverlayView overlayView;
     private PreviewView previewView;
+    private TextView detectionResultsTextView;
     private ObjectDetectorHelper objectDetectorHelper;
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private ObjectTracker objectTracker = new ObjectTracker();
@@ -76,6 +78,8 @@ public class CameraActivity extends AppCompatActivity {
 
         //display fps
         fpsTextView = findViewById(R.id.fpsTextView);
+        //display results
+        detectionResultsTextView = findViewById(R.id.detectionResultsTextView);
         // added overlay
         overlayView = findViewById(R.id.overlayView);
 
@@ -286,6 +290,8 @@ public class CameraActivity extends AppCompatActivity {
 
         overlayView.setResults(finalDetections); // Update visualization
 
+        // added to display results
+        StringBuilder resultText = new StringBuilder();
         // Safely update UI on the main thread (async part)
         /*runOnUiThread(() -> {
             overlayView.setResults(finalDetections);
@@ -319,6 +325,10 @@ public class CameraActivity extends AppCompatActivity {
             }
             // Play sound
             //soundPool.play(soundToPlay, 1.0f, 1.0f, 1, 0, 1.0f);
+            // display result
+            resultText.append(String.format(Locale.US,
+                    "ID %d | Class %d | %.1f%% | %s | %.1f°\n",
+                    det.objectId, det.detectedClass, det.confidence * 100, direction, angle));
 
             Log.d("NMS", "ID=" + det.objectId +
                     ", Class=" + det.detectedClass +
@@ -327,6 +337,8 @@ public class CameraActivity extends AppCompatActivity {
                     ", Conf=" + det.confidence +
                     ", Box=[" + det.left + "," + det.top + "," + det.right + "," + det.bottom + "]");
         }
+
+        runOnUiThread(() -> detectionResultsTextView.setText(resultText.toString()));
     }
 
     private float[][][][] bitmapToInputArray(Bitmap bitmap) {
