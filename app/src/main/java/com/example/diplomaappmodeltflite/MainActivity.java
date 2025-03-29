@@ -11,6 +11,7 @@ public class MainActivity extends AppCompatActivity {
 
     private Button btnStartDetection;
     private Button btnSettings;
+    private Button sectorsSettingsButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +25,12 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, CameraActivity.class);
             startActivity(intent);
         });
+
+        findViewById(R.id.sectorsSettingsButton).setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SectorsSettingsActivity.class);
+            startActivity(intent);
+        });
+
 
         btnSettings.setOnClickListener(v -> {
             Toast.makeText(this, "Settings coming soon!", Toast.LENGTH_SHORT).show();

@@ -10,12 +10,18 @@
         android:id="@+id/btnStartDetection"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Start Detection" />
+        android:text="Почати виявлення" />
 
     <Button
         android:id="@+id/btnSettings"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Settings" />
+        android:text="Налаштування" />
+
+    <Button
+        android:id="@+id/sectorsSettingsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Налаштування секторів" />
 
 </LinearLayout>
