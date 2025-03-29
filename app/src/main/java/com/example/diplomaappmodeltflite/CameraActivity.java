@@ -42,6 +42,7 @@ import java.util.concurrent.Executors;
 
 public class CameraActivity extends AppCompatActivity {
 
+    private SessionLogger sessionLogger;
     private OverlayView overlayView;
     private PreviewView previewView;
     private TextView detectionResultsTextView;
@@ -80,6 +81,8 @@ public class CameraActivity extends AppCompatActivity {
         inferenceExecutor = Executors.newSingleThreadExecutor();
 
         setContentView(R.layout.activity_camera);
+
+        sessionLogger = new SessionLogger(this);
 
         //display fps
         fpsTextView = findViewById(R.id.fpsTextView);
@@ -125,6 +128,8 @@ public class CameraActivity extends AppCompatActivity {
                 Log.e("CameraX", "Camera provider error", e);
             }
         }, ContextCompat.getMainExecutor(this));
+
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
 
     }
 
@@ -375,6 +380,10 @@ public class CameraActivity extends AppCompatActivity {
                     det.objectId, det.detectedClass, det.confidence * 100, sectorId));
 
             Log.d("SOUND", "Object in sector " + sectorId + ", played sound: " + soundId);
+
+            sessionLogger.log("Detected object ID=" + det.objectId +
+                    ", Class=" + det.detectedClass +
+                    ", Confidence=" + det.confidence);
 
         }
 

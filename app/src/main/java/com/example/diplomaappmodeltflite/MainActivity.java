@@ -12,6 +12,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnStartDetection;
     private Button btnSettings;
     private Button sectorsSettingsButton;
+    private Button btnHistory;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,21 +21,27 @@ public class MainActivity extends AppCompatActivity {
 
         btnStartDetection = findViewById(R.id.btnStartDetection);
         btnSettings = findViewById(R.id.btnSettings);
+        sectorsSettingsButton = findViewById(R.id.sectorsSettingsButton);
+        btnHistory = findViewById(R.id.btnHistory);
 
         btnStartDetection.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, CameraActivity.class);
             startActivity(intent);
         });
 
-        findViewById(R.id.sectorsSettingsButton).setOnClickListener(v -> {
+        sectorsSettingsButton.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, SectorsSettingsActivity.class);
             startActivity(intent);
         });
 
-
         btnSettings.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, AppSettingsActivity.class);
             startActivity(intent);
-        });;
+        });
+
+        btnHistory.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+            startActivity(intent);
+        });
     }
 }
