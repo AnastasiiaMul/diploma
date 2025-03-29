@@ -366,7 +366,7 @@ public class CameraActivity extends AppCompatActivity {
             // Play sector's sound if loaded
             Integer soundId = sectorSoundMap.get(sectorId);
             if (soundId != null) {
-                soundPool.play(soundId, 0.2f, 0.2f, 1, 0, 1.0f);
+                soundPool.play(soundId, 0.02f, 0.02f, 1, 0, 1.0f);
             }
 
             // display result

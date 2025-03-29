@@ -11,6 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:hint="Введіть кількість секторів"
+        android:textSize="24sp"
         android:inputType="number" />
 
     <Button
@@ -18,7 +19,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Згенерувати сектори"
-        android:layout_marginTop="8dp"/>
+        android:textSize="24sp"
+        android:layout_marginTop="12dp"/>
 
     <LinearLayout
         android:id="@+id/sectorsButtonsContainer"
@@ -30,7 +32,9 @@
 
     <Button
         android:id="@+id/backButton"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Назад" />
+        android:text="Назад"
+        android:textSize="24sp"
+        android:layout_marginTop="12dp"/>
 </LinearLayout>
