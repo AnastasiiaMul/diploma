@@ -10,18 +10,55 @@
         android:id="@+id/btnStartDetection"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Почати виявлення" />
+        android:text="Почати виявлення"
+        android:textSize="24sp"/>
 
     <Button
         android:id="@+id/btnSettings"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Налаштування" />
+        android:text="Налаштування інтерфейсу"
+        android:textSize="24sp"
+        android:layout_marginTop="12dp" />
 
     <Button
         android:id="@+id/sectorsSettingsButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Налаштування секторів" />
+        android:text="Налаштування секторів"
+        android:textSize="24sp"
+        android:layout_marginTop="12dp" />
+
+    <Button
+        android:id="@+id/objectSoundSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Налаштування звуків об'єктів"
+        android:textSize="24sp"
+        android:layout_marginTop="12dp" />
+
+    <Button
+        android:id="@+id/objectDistanceSettings"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Налаштування відстані"
+        android:textSize="24sp"
+        android:layout_marginTop="12dp" />
+
+    <Button
+        android:id="@+id/objectTrip"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Подорожі"
+        android:textSize="24sp"
+        android:layout_marginTop="12dp" />
+
+    <Button
+        android:id="@+id/History"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Історія подорожей"
+        android:textSize="24sp"
+        android:layout_marginTop="12dp" />
 
 </LinearLayout>

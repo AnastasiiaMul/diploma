@@ -33,8 +33,10 @@ import org.tensorflow.lite.Interpreter;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -66,7 +68,10 @@ public class CameraActivity extends AppCompatActivity {
     private ExecutorService inferenceExecutor;
     //sound setting
     private SoundPool soundPool;
-    private int soundLeft, soundRight, soundCenter;
+    //to use when sound angles
+    //private int soundLeft, soundRight, soundCenter;
+
+    private final Map<Integer, Integer> sectorSoundMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,17 +93,28 @@ public class CameraActivity extends AppCompatActivity {
 
         //add logic for sound
         soundPool = new SoundPool.Builder()
-                .setMaxStreams(3)
+                .setMaxStreams(5)
                 .setAudioAttributes(new AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_MEDIA)
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build())
                 .build();
         //TODO: change sounds for different directions
-        soundLeft = soundPool.load(this, R.raw.notification, 1);
-        soundRight = soundPool.load(this, R.raw.notification, 1);
-        soundCenter = soundPool.load(this, R.raw.notification, 1);
-
+        //soundLeft = soundPool.load(this, R.raw.notification, 1);
+        //soundRight = soundPool.load(this, R.raw.notification, 1);
+        //soundCenter = soundPool.load(this, R.raw.notification, 1);
+        // Load sounds for all sectors from preferences
+        int sectorCount = SectorSoundManager.getNumberOfSectors(this);
+        for (int sectorId = 1; sectorId <= sectorCount; sectorId++) {
+            String soundName = SectorSoundManager.getSoundForSector(this, sectorId);
+            if (!soundName.isEmpty()) {
+                int resId = getResources().getIdentifier(soundName, "raw", getPackageName());
+                if (resId != 0) {
+                    int soundId = soundPool.load(this, resId, 1);
+                    sectorSoundMap.put(sectorId, soundId);
+                }
+            }
+        }
         cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 
         cameraProviderFuture.addListener(() -> {
@@ -298,7 +314,8 @@ public class CameraActivity extends AppCompatActivity {
             Log.d("Inference", "Updated UI with new bounding boxes.");
         });*/
 
-        for (DetectionResult det : finalDetections) {
+        //old direction sounds logic
+        /*for (DetectionResult det : finalDetections) {
 
             float objectCenterX = (det.left + det.right) / 2;
             float imageWidth = bitmap.getWidth();
@@ -315,13 +332,13 @@ public class CameraActivity extends AppCompatActivity {
             int soundToPlay;
             if (angle < -10) {
                 direction = "Left";
-                soundPool.play(soundLeft, 1.0f, 0.2f, 1, 0, 1.0f);  // Louder on left ear
+                //soundPool.play(soundLeft, 1.0f, 0.2f, 1, 0, 1.0f);  // Louder on left ear
             } else if (angle > 10) {
                 direction = "Right";
-                soundPool.play(soundRight, 0.2f, 1.0f, 1, 0, 1.0f);  // Louder on right ear
+                //soundPool.play(soundRight, 0.2f, 1.0f, 1, 0, 1.0f);  // Louder on right ear
             } else {
                 direction = "Center";
-                soundPool.play(soundCenter, 1.0f, 1.0f, 1, 0, 1.0f);  // Equal volume
+                //soundPool.play(soundCenter, 1.0f, 1.0f, 1, 0, 1.0f);  // Equal volume
             }
             // Play sound
             //soundPool.play(soundToPlay, 1.0f, 1.0f, 1, 0, 1.0f);
@@ -336,6 +353,29 @@ public class CameraActivity extends AppCompatActivity {
                     ", Direction=" + direction +
                     ", Conf=" + det.confidence +
                     ", Box=[" + det.left + "," + det.top + "," + det.right + "," + det.bottom + "]");
+        }*/
+        for (DetectionResult det : finalDetections) {
+            float objectCenterX = (det.left + det.right) / 2f;
+            float imageWidth = bitmap.getWidth();
+
+            // Divide FOV horizontally into vertical sectors
+            int sectorCount = SectorSoundManager.getNumberOfSectors(this);
+            int sectorId = (int) ((objectCenterX / imageWidth) * sectorCount) + 1;
+            sectorId = Math.min(sectorId, sectorCount); // Safety check
+
+            // Play sector's sound if loaded
+            Integer soundId = sectorSoundMap.get(sectorId);
+            if (soundId != null) {
+                soundPool.play(soundId, 0.2f, 0.2f, 1, 0, 1.0f);
+            }
+
+            // display result
+            resultText.append(String.format(Locale.US,
+                    "ID %d | Class %d | %.1f%% | %s | \n",
+                    det.objectId, det.detectedClass, det.confidence * 100, sectorId));
+
+            Log.d("SOUND", "Object in sector " + sectorId + ", played sound: " + soundId);
+
         }
 
         runOnUiThread(() -> detectionResultsTextView.setText(resultText.toString()));

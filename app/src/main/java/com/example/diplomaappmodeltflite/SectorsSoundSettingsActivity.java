@@ -2,6 +2,8 @@ package com.example.diplomaappmodeltflite;
 
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -9,31 +11,33 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SectorsSoundSettingsActivity extends AppCompatActivity {
-    private ListView soundListView;
+    private int sectorId;
+    private String[] availableSounds = {"sector1", "sector2", "sector3", "Фа", "Соль", "Ля", "Сі"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sectors_sound_settings);
 
-        int sectorId = getIntent().getIntExtra("sectorId", -1);
-        TextView sectorLabel = findViewById(R.id.sectorLabel);
-        sectorLabel.setText("Оберіть звук для сектору " + sectorId);
+        // Get the sector ID from intent
+        sectorId = getIntent().getIntExtra("sectorId", 1);
 
-        soundListView = findViewById(R.id.soundListView);
-        String[] sounds = {"Beep", "Ping", "Buzz", "Alarm"};
+        LinearLayout soundListLayout = findViewById(R.id.soundListLayout);
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_list_item_1, sounds);
-        soundListView.setAdapter(adapter);
+        // Dynamically add buttons for each sound
+        for (String soundName : availableSounds) {
+            Button soundButton = new Button(this);
+            soundButton.setText(soundName);
+            soundButton.setOnClickListener(v -> {
+                SoundPreferences.saveSoundForSector(this, sectorId, soundName);
+                finish(); // Go back to SectorsSettingsActivity
+            });
+            soundListLayout.addView(soundButton);
+        }
 
-        soundListView.setOnItemClickListener((parent, view, position, id) -> {
-            String selectedSound = sounds[position];
-            // TODO: Store sound selection for this sector
-            Toast.makeText(this, "Обрано " + selectedSound + " для сектору " + sectorId, Toast.LENGTH_SHORT).show();
-        });
-
-        findViewById(R.id.backToSectors).setOnClickListener(v -> finish());
+        // Back button
+        Button backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> finish());
     }
 }
 
