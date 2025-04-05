@@ -425,6 +425,10 @@ public class CameraActivity extends AppCompatActivity {
                     ", Conf=" + det.confidence +
                     ", Box=[" + det.left + "," + det.top + "," + det.right + "," + det.bottom + "]");
 
+            sessionLogger.log("Detected object ID=" + det.objectId +
+                    ", Class=" + det.detectedClass +
+                    ", Confidence=" + det.confidence);
+
         }
 
         runOnUiThread(() -> detectionResultsTextView.setText(resultText.toString()));
