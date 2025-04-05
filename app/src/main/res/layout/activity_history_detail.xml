@@ -12,6 +12,7 @@
         android:layout_height="wrap_content"
         android:text="Назад"
         android:layout_gravity="start"
+        android:textSize="24sp"
         android:layout_marginBottom="12dp" />
 
     <ScrollView
@@ -22,7 +23,7 @@
             android:id="@+id/textViewSessionLogs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="16sp"
+            android:textSize="24sp"
             android:textIsSelectable="true" />
     </ScrollView>
 </LinearLayout>
