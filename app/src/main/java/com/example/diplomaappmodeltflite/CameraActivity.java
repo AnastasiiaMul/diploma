@@ -50,8 +50,8 @@ public class CameraActivity extends AppCompatActivity {
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private ObjectTracker objectTracker = new ObjectTracker();
 
-    //private static final int NUM_CLASSES = 80;
-    private static final int NUM_CLASSES = 5;
+    private static final int NUM_CLASSES = 80;
+    //private static final int NUM_CLASSES = 4;
     private static final float CONFIDENCE_THRESHOLD = 0.3f;
     private static final int IMAGE_SIZE = 640; //upd
 
@@ -74,6 +74,17 @@ public class CameraActivity extends AppCompatActivity {
     //private int soundLeft, soundRight, soundCenter;
 
     private final Map<Integer, Integer> sectorSoundMap = new HashMap<>();
+
+    // data to approximate the distance
+    // Constants for object heights (in meters)
+    private static final Map<Integer, Float> OBJECT_HEIGHTS = new HashMap<Integer, Float>() {{
+        put(0, 1.7f); // person
+        put(1, 1.5f); // bicycle
+        put(2, 1.5f); // car
+    }};
+
+    private static final float FOCAL_LENGTH = 500f; // approximate focal length in pixels
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -361,6 +372,15 @@ public class CameraActivity extends AppCompatActivity {
                     ", Box=[" + det.left + "," + det.top + "," + det.right + "," + det.bottom + "]");
         }*/
         for (DetectionResult det : finalDetections) {
+
+            float boxHeight = det.bottom - det.top;
+            float distance = -1f;
+            if (OBJECT_HEIGHTS.containsKey(det.detectedClass)) {
+                float realHeight = OBJECT_HEIGHTS.get(det.detectedClass);
+                distance = Math.max(0, (realHeight * FOCAL_LENGTH) / (boxHeight * 0.5f));
+            }
+
+
             float objectCenterX = (det.left + det.right) / 2f;
             float imageWidth = bitmap.getWidth();
 
@@ -371,20 +391,39 @@ public class CameraActivity extends AppCompatActivity {
 
             // Play sector's sound if loaded
             Integer soundId = sectorSoundMap.get(sectorId);
-            if (soundId != null) {
+            /*if (soundId != null) {
                 soundPool.play(soundId, 0.02f, 0.02f, 1, 0, 1.0f);
+            }*/
+            if (soundId != null) {
+                float volume = DistanceSettingsActivity.getVolumeForDistance(this, distance);
+
+                Log.d("SOUND", String.format(Locale.US,
+                        "Sector %d | Distance: %.2f m | Volume: %.2f | Sound ID: %d",
+                        sectorId, distance, volume, soundId));
+
+                if (volume > 0f) {
+                    soundPool.play(soundId, volume, volume, 1, 0, 1.0f);
+                } else {
+                    Log.d("SOUND", "Skipped playback due to zero volume.");
+                }
+            } else {
+                Log.w("SOUND", "No sound ID found for sector " + sectorId);
             }
+
 
             // display result
             resultText.append(String.format(Locale.US,
-                    "ID %d | Class %d | %.1f%% | %s | \n",
-                    det.objectId, det.detectedClass, det.confidence * 100, sectorId));
+                    "ID %d | Class %d | %.1f%% | Sector %d | Distance: %.2f m\n",
+                    det.objectId, det.detectedClass, det.confidence * 100, sectorId, distance));
 
             Log.d("SOUND", "Object in sector " + sectorId + ", played sound: " + soundId);
 
-            sessionLogger.log("Detected object ID=" + det.objectId +
+            Log.d("NMS", "ID=" + det.objectId +
                     ", Class=" + det.detectedClass +
-                    ", Confidence=" + det.confidence);
+                    ", Sector=" + sectorId +
+                    ", Distance=" + distance + " m" +
+                    ", Conf=" + det.confidence +
+                    ", Box=[" + det.left + "," + det.top + "," + det.right + "," + det.bottom + "]");
 
         }
 

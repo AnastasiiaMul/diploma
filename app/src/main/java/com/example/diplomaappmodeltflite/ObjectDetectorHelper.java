@@ -12,7 +12,7 @@ import java.nio.channels.FileChannel;
 public class ObjectDetectorHelper {
 
     private static final String MODEL_PATH = "ml/yolo11n_float32.tflite";
-    private static final String MODEL1_PATH = "ml/yolo11n_float32.tflite";
+    //private static final String MODEL1_PATH = "ml/yolo11n_float32.tflite";
     private Interpreter tflite;
 
     public ObjectDetectorHelper(Context context) {
@@ -27,7 +27,7 @@ public class ObjectDetectorHelper {
     }
 
     private MappedByteBuffer loadModel(Context context) throws Exception {
-        try (AssetFileDescriptor fileDescriptor = context.getAssets().openFd(MODEL1_PATH);
+        try (AssetFileDescriptor fileDescriptor = context.getAssets().openFd(MODEL_PATH);
              FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor())) {
 
             FileChannel fileChannel = inputStream.getChannel();

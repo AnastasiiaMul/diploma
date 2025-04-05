@@ -13,6 +13,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnSettings;
     private Button sectorsSettingsButton;
     private Button btnHistory;
+    private Button objectDistanceSettings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
         btnSettings = findViewById(R.id.btnSettings);
         sectorsSettingsButton = findViewById(R.id.sectorsSettingsButton);
         btnHistory = findViewById(R.id.btnHistory);
+        objectDistanceSettings = findViewById(R.id.objectDistanceSettings);
 
         btnStartDetection.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, CameraActivity.class);
@@ -41,6 +43,11 @@ public class MainActivity extends AppCompatActivity {
 
         btnHistory.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, HistoryActivity.class);
+            startActivity(intent);
+        });
+
+        objectDistanceSettings.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, DistanceSettingsActivity.class);
             startActivity(intent);
         });
     }
