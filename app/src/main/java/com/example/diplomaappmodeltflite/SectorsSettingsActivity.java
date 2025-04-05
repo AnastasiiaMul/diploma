@@ -25,17 +25,19 @@ public class SectorsSettingsActivity extends AppCompatActivity {
         Button generateButtons = findViewById(R.id.generateButtons);
         Button backButton = findViewById(R.id.backButton);
 
-        generateButtons.setOnClickListener(v -> generateSectorButtons());
+        generateButtons.setOnClickListener(v -> {
+            String inputText = numSectorsInput.getText().toString();
+            if (!inputText.isEmpty()) {
+                int numSectors = Integer.parseInt(inputText);
+                SectorSoundManager.setNumberOfSectors(this, numSectors); // Save to SharedPreferences
+                generateSectorButtons(numSectors);
+            }
+        });
         backButton.setOnClickListener(v -> finish());
     }
 
-    private void generateSectorButtons() {
+    private void generateSectorButtons(int numSectors) {
         sectorsButtonsContainer.removeAllViews();
-        String inputText = numSectorsInput.getText().toString();
-        if (inputText.isEmpty()) return;
-
-        int numSectors = Integer.parseInt(inputText);
-        SectorSoundManager.setNumberOfSectors(this, numSectors);
 
         for (int i = 1; i <= numSectors; i++) {
             int sectorId = i;
@@ -69,8 +71,13 @@ public class SectorsSettingsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Regenerate buttons with updated sound labels when returning from sound selection
-        generateSectorButtons();
+
+        // Load saved number of sectors from preferences
+        int savedNumSectors = SectorSoundManager.getNumberOfSectors(this);
+        if (savedNumSectors > 0) {
+            numSectorsInput.setText(String.valueOf(savedNumSectors));
+            generateSectorButtons(savedNumSectors);
+        }
     }
 }
 
