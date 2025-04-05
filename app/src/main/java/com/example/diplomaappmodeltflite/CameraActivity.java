@@ -52,7 +52,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private static final int NUM_CLASSES = 80;
     //private static final int NUM_CLASSES = 4;
-    private static final float CONFIDENCE_THRESHOLD = 0.3f;
+    private static final float CONFIDENCE_THRESHOLD = 0.8f;
     private static final int IMAGE_SIZE = 640; //upd
 
     private static final float NMS_THRESHOLD = 0.5f;
@@ -375,6 +375,7 @@ public class CameraActivity extends AppCompatActivity {
 
             float boxHeight = det.bottom - det.top;
             float distance = -1f;
+
             if (OBJECT_HEIGHTS.containsKey(det.detectedClass)) {
                 float realHeight = OBJECT_HEIGHTS.get(det.detectedClass);
                 distance = Math.max(0, (realHeight * FOCAL_LENGTH) / (boxHeight * 0.5f));
@@ -389,25 +390,32 @@ public class CameraActivity extends AppCompatActivity {
             int sectorId = (int) ((objectCenterX / imageWidth) * sectorCount) + 1;
             sectorId = Math.min(sectorId, sectorCount); // Safety check
 
-            // Play sector's sound if loaded
-            Integer soundId = sectorSoundMap.get(sectorId);
-            /*if (soundId != null) {
-                soundPool.play(soundId, 0.02f, 0.02f, 1, 0, 1.0f);
-            }*/
-            if (soundId != null) {
-                float volume = DistanceSettingsActivity.getVolumeForDistance(this, distance);
+            // --- PLAY SECTOR SOUND ---
+            Integer sectorSoundId = sectorSoundMap.get(sectorId);
+            if (sectorSoundId != null) {
+                float quietVolume = 0.05f;
+                soundPool.play(sectorSoundId, quietVolume, quietVolume, 1, 0, 1.0f);
+                Log.d("SOUND", "Played quiet sector sound for sector " + sectorId);
+            }
 
-                Log.d("SOUND", String.format(Locale.US,
-                        "Sector %d | Distance: %.2f m | Volume: %.2f | Sound ID: %d",
-                        sectorId, distance, volume, soundId));
+            // --- PLAY OBJECT SOUND ---
+            String objectName = CocoLabels.getLabel(det.detectedClass); // Map ID to label like "car", "person".
+            String objectSound = ObjectSoundPreferences.getSoundForObject(this, objectName);
 
-                if (volume > 0f) {
-                    soundPool.play(soundId, volume, volume, 1, 0, 1.0f);
-                } else {
-                    Log.d("SOUND", "Skipped playback due to zero volume.");
+            if (objectSound != null && !objectSound.isEmpty()) {
+                int resId = getResources().getIdentifier(objectSound.toLowerCase(), "raw", getPackageName());
+                if (resId != 0) {
+                    int objectSoundId = soundPool.load(this, resId, 1);
+
+                    float volume = DistanceSettingsActivity.getVolumeForDistance(this, distance);
+
+                    Log.d("SOUND", String.format(Locale.US,
+                            "Object %s | Distance: %.2f m | Volume: %.2f | Sound: %s",
+                            objectName, distance, volume, objectSound));
+
+                    // Delay a little maybe
+                    soundPool.play(objectSoundId, volume, volume, 1, 0, 1.0f);
                 }
-            } else {
-                Log.w("SOUND", "No sound ID found for sector " + sectorId);
             }
 
 
@@ -416,7 +424,7 @@ public class CameraActivity extends AppCompatActivity {
                     "ID %d | Class %d | %.1f%% | Sector %d | Distance: %.2f m\n",
                     det.objectId, det.detectedClass, det.confidence * 100, sectorId, distance));
 
-            Log.d("SOUND", "Object in sector " + sectorId + ", played sound: " + soundId);
+
 
             Log.d("NMS", "ID=" + det.objectId +
                     ", Class=" + det.detectedClass +

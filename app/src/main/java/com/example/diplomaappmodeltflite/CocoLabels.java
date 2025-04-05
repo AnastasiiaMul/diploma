@@ -16,6 +16,15 @@ public class CocoLabels {
             "toothbrush"
     };
 
+    public static String getLabel(int classId) {
+        if (classId >= 0 && classId < LABELS.length) {
+            return LABELS[classId];
+        } else {
+            return "unknown";
+        }
+    }
+
+
     public static final String[] LABELS_MODEL1 = {
             "bus", "car", "person", "traffic signal", "truck"
     };
