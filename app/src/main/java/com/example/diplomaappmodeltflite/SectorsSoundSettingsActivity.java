@@ -24,10 +24,19 @@ public class SectorsSoundSettingsActivity extends AppCompatActivity {
 
         LinearLayout soundListLayout = findViewById(R.id.soundListLayout);
 
+        // Load current selected sound for this sector
+        String selectedSound = SoundPreferences.getSoundForSector(this, sectorId);
+
         // Dynamically add buttons for each sound
         for (String soundName : availableSounds) {
             Button soundButton = new Button(this);
             soundButton.setText(soundName);
+
+            // Highlight selected sound
+            if (soundName.equals(selectedSound)) {
+                soundButton.setBackgroundColor(getResources().getColor(android.R.color.holo_green_light));
+            }
+
             soundButton.setOnClickListener(v -> {
                 SoundPreferences.saveSoundForSector(this, sectorId, soundName);
                 finish(); // Go back to SectorsSettingsActivity
