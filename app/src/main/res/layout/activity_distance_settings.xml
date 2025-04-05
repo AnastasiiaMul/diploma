@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:text="Налаштування звуку за відстанню"
+            android:textSize="24sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp" />
+
+        <TextView
+            android:text="Мінімальна відстань (м)"
+            android:textSize="24sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"/>
+
+        <EditText
+            android:id="@+id/minDistanceInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Мінімальна відстань (м)"
+            android:inputType="numberDecimal"
+            android:textSize="24sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:text="Максимальна відстань (м)"
+            android:textSize="24sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"/>
+
+        <EditText
+            android:id="@+id/maxDistanceInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Максимальна відстань (м)"
+            android:inputType="numberDecimal"
+            android:textSize="24sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:text="Мінімальна гучність (0.0 - 1.0)"
+            android:textSize="24sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"/>
+
+        <EditText
+            android:id="@+id/minVolumeInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Мінімальна гучність (0.0 - 1.0)"
+            android:inputType="numberDecimal"
+            android:textSize="24sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:text="Максимальна гучність (0.0 - 1.0)"
+            android:textSize="24sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"/>
+
+        <EditText
+            android:id="@+id/maxVolumeInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Максимальна гучність (0.0 - 1.0)"
+            android:inputType="numberDecimal"
+            android:textSize="24sp"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:text="Кількість градацій"
+            android:textSize="24sp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="8dp"/>
+
+        <EditText
+            android:id="@+id/gradationsInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Кількість градацій"
+            android:inputType="number"
+            android:textSize="24sp"
+            android:layout_marginBottom="24dp" />
+
+        <Button
+            android:id="@+id/saveDistanceSettingsButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Зберегти"
+            android:textSize="24sp"
+            android:layout_marginBottom="16dp" />
+
+        <Button
+            android:id="@+id/backButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Назад"
+            android:textSize="24sp" />
+    </LinearLayout>
+</ScrollView>
