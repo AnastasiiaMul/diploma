@@ -16,7 +16,13 @@ public class ObjectsSoundsSettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_objects_sounds_settings);
 
-        String objectType = getIntent().getStringExtra("objectType");
+        String objectType = getIntent().getStringExtra("objectLabel");
+        if (objectType == null) {
+            // Handle missing object type
+            finish();
+            return;
+        }
+
         LinearLayout layout = findViewById(R.id.objectSoundListLayout);
 
         String selectedSound = ObjectSoundPreferences.getSoundForObject(this, objectType);
@@ -25,7 +31,7 @@ public class ObjectsSoundsSettingsActivity extends AppCompatActivity {
             Button soundButton = new Button(this);
             soundButton.setText(sound);
             if (sound.equals(selectedSound)) {
-                soundButton.setBackgroundColor(Color.parseColor("#B0E0E6")); // Highlight selected
+                soundButton.setBackgroundColor(Color.parseColor("#008000")); // Highlight selected
             }
             soundButton.setOnClickListener(v -> {
                 ObjectSoundPreferences.saveSoundForObject(this, objectType, sound);

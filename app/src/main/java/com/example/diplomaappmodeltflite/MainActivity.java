@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
         sectorsSettingsButton = findViewById(R.id.sectorsSettingsButton);
         btnHistory = findViewById(R.id.btnHistory);
         objectDistanceSettings = findViewById(R.id.objectDistanceSettings);
-        objectDistanceSettings = findViewById(R.id.objectDistanceSettings);
+        objectSoundSettings = findViewById(R.id.objectSoundSettings);
 
         btnStartDetection.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, CameraActivity.class);
@@ -53,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        objectDistanceSettings.setOnClickListener(v -> {
+        objectSoundSettings.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, ObjectsSettingsActivity.class);
             startActivity(intent);
         });

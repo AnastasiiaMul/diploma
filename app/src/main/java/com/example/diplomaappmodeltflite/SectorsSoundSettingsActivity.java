@@ -1,5 +1,6 @@
 package com.example.diplomaappmodeltflite;
 
+import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
@@ -34,7 +35,7 @@ public class SectorsSoundSettingsActivity extends AppCompatActivity {
 
             // Highlight selected sound
             if (soundName.equals(selectedSound)) {
-                soundButton.setBackgroundColor(getResources().getColor(android.R.color.holo_green_light));
+                soundButton.setBackgroundColor(Color.parseColor("#008000"));
             }
 
             soundButton.setOnClickListener(v -> {
