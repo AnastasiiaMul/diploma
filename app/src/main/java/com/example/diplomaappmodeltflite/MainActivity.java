@@ -14,6 +14,7 @@ public class MainActivity extends AppCompatActivity {
     private Button sectorsSettingsButton;
     private Button btnHistory;
     private Button objectDistanceSettings;
+    private Button objectSoundSettings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,6 +25,7 @@ public class MainActivity extends AppCompatActivity {
         btnSettings = findViewById(R.id.btnSettings);
         sectorsSettingsButton = findViewById(R.id.sectorsSettingsButton);
         btnHistory = findViewById(R.id.btnHistory);
+        objectDistanceSettings = findViewById(R.id.objectDistanceSettings);
         objectDistanceSettings = findViewById(R.id.objectDistanceSettings);
 
         btnStartDetection.setOnClickListener(v -> {
@@ -48,6 +50,11 @@ public class MainActivity extends AppCompatActivity {
 
         objectDistanceSettings.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, DistanceSettingsActivity.class);
+            startActivity(intent);
+        });
+
+        objectDistanceSettings.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, ObjectsSettingsActivity.class);
             startActivity(intent);
         });
     }

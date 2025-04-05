@@ -37,6 +37,12 @@
             android:name=".DistanceSettingsActivity"
             android:exported="false" />
         <activity
+            android:name=".ObjectsSettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ObjectsSoundsSettingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
