@@ -44,7 +44,8 @@ public class OverlayView extends View {
                 canvas.drawRect(result.left, result.top, result.right, result.bottom, boxPaint);
 
                 // Display label: "#ID Class (Confidence)"
-                String className = CocoLabels.LABELS[result.detectedClass];
+                //String className = CocoLabels.LABELS[result.detectedClass]; //diplays cocc
+                String className = CocoLabels.LABELS_MODEL1[result.detectedClass]; //diplays trained model
                 String label = "#" + result.objectId + " " + className +
                         " (" + String.format("%.1f", result.confidence * 100) + "%)";
 

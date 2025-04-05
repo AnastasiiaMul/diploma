@@ -15,4 +15,8 @@ public class CocoLabels {
             "refrigerator", "book", "clock", "vase", "scissors", "teddy bear", "hair drier",
             "toothbrush"
     };
+
+    public static final String[] LABELS_MODEL1 = {
+            "bus", "car", "person", "traffic signal", "truck"
+    };
 }

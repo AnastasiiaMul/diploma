@@ -50,7 +50,8 @@ public class CameraActivity extends AppCompatActivity {
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private ObjectTracker objectTracker = new ObjectTracker();
 
-    private static final int NUM_CLASSES = 80;
+    //private static final int NUM_CLASSES = 80;
+    private static final int NUM_CLASSES = 5;
     private static final float CONFIDENCE_THRESHOLD = 0.3f;
     private static final int IMAGE_SIZE = 640; //upd
 
