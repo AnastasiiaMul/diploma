@@ -3,6 +3,8 @@ package com.example.diplomaappmodeltflite;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,17 +18,29 @@ import androidx.core.app.ActivityCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 
+import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 
-public class TravelActivity extends AppCompatActivity {
+public class TravelActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
+    Location currentLocation;
+    private GoogleMap Map;
 
     private FusedLocationProviderClient fusedLocationClient;
     private double currentLat, currentLng;
@@ -34,13 +48,15 @@ public class TravelActivity extends AppCompatActivity {
     private TextView currentLocationTextView;
     private Button startTravelButton;
     private Button btnBack;
-
     private boolean destinationSelected = false;
+    private Geocoder geocoder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_travel);
+        geocoder = new Geocoder(this, Locale.getDefault());
+
 
         btnBack = findViewById(R.id.btnBack);
 
@@ -52,7 +68,7 @@ public class TravelActivity extends AppCompatActivity {
         // Initialize Places SDK
         if (!Places.isInitialized()) {
             String apiKey = getMetaDataApiKey();
-            if (apiKey != null && !Places.isInitialized()) {
+            if (apiKey != null) {
                 Places.initialize(getApplicationContext(), apiKey);
             }
 
@@ -80,22 +96,51 @@ public class TravelActivity extends AppCompatActivity {
     }
 
     private void requestLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST);
             return;
         }
 
-        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
-            if (location != null) {
-                currentLat = location.getLatitude();
-                currentLng = location.getLongitude();
-                currentLocationTextView.setText(String.format("Lat: %.5f, Lng: %.5f", currentLat, currentLng));
-            } else {
-                currentLocationTextView.setText("Location not available.");
+        Task<Location> task = fusedLocationClient.getLastLocation();
+        task.addOnSuccessListener(new OnSuccessListener<Location>() {
+            @Override
+            public void onSuccess(Location location) {
+                if (location != null){
+                    currentLocation = location;
+                    SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+                    mapFragment.getMapAsync(TravelActivity.this);
+
+                    String result = null;
+                    try{
+                        List<Address> addresses =
+                                geocoder.getFromLocation(currentLocation.getLatitude(),
+                                        currentLocation.getLongitude(), 1);
+
+                        if (addresses != null && !addresses.isEmpty()) {
+                            Address address = addresses.get(0);
+                            // sending back first address line and locality
+                            result = address.getAddressLine(0); // + ", " + address.getLocality()
+                            currentLocationTextView.setText(result != null ? result : "Location not available");
+                        }
+
+                    } catch (IOException e) {
+                        Log.e("TravelActivity", "Address error: " + e);
+                    }
+                    currentLocationTextView.setText(result);
+
+                }
             }
         });
+    }
+    @Override
+    public void onMapReady(@NonNull GoogleMap googleMap){
+        Map = googleMap;
+
+        LatLng center = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
+        Map.addMarker(new MarkerOptions().position(center).title("Поточна локація"));
+        Map.moveCamera(CameraUpdateFactory.newLatLngZoom(center, 20));
     }
 
     private void setupAutocomplete() {
