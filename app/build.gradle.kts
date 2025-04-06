@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.camera2)
     implementation(libs.camera.core)
+    implementation(libs.places)
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)

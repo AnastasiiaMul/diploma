@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/travelRootLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp"
+    android:orientation="vertical"
+    tools:context=".TravelActivity">
+
+    <!-- Back Button -->
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Назад"
+        android:layout_gravity="start"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Current Location -->
+    <TextView
+        android:id="@+id/currentLocationLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Your Location:"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/currentLocationTextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Fetching current location..."
+        android:textSize="16sp"
+        android:paddingBottom="16dp" />
+
+    <!-- Destination Input with Autocomplete -->
+    <TextView
+        android:id="@+id/destinationLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Enter Destination:"
+        android:textSize="16sp"
+        android:textStyle="bold" />
+
+    <fragment
+        android:id="@+id/autocompleteFragment"
+        android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <!-- Start Travel Button -->
+    <Button
+        android:id="@+id/startTravelButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Start Travel"
+        android:layout_marginTop="24dp"
+        android:textAllCaps="false"
+        android:textSize="18sp" />
+
+</LinearLayout>

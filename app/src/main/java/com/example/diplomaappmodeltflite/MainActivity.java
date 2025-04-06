@@ -1,11 +1,15 @@
 package com.example.diplomaappmodeltflite;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -15,6 +19,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnHistory;
     private Button objectDistanceSettings;
     private Button objectSoundSettings;
+    private Button btnTrip;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
         btnHistory = findViewById(R.id.btnHistory);
         objectDistanceSettings = findViewById(R.id.objectDistanceSettings);
         objectSoundSettings = findViewById(R.id.objectSoundSettings);
+        btnTrip = findViewById(R.id.btnTrip);
 
         btnStartDetection.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, CameraActivity.class);
@@ -57,5 +63,11 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, ObjectsSettingsActivity.class);
             startActivity(intent);
         });
+
+        btnTrip.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, TravelActivity.class);
+            startActivity(intent);
+        });
+
     }
 }
