@@ -1,6 +1,7 @@
 package com.example.diplomaappmodeltflite;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
@@ -26,6 +27,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import androidx.camera.core.resolutionselector.ResolutionSelector;
 import androidx.camera.core.resolutionselector.AspectRatioStrategy;
 import androidx.camera.core.resolutionselector.ResolutionStrategy;
+import androidx.fragment.app.Fragment;
+
 import android.media.AudioAttributes;
 import android.media.Image;
 import android.media.SoundPool;
@@ -104,6 +107,22 @@ public class CameraActivity extends AppCompatActivity {
         overlayView = findViewById(R.id.overlayView);
 
         previewView = findViewById(R.id.cameraPreview);
+
+        // open full screen camera
+        previewView.setOnClickListener(v -> {
+            Intent intent = new Intent(CameraActivity.this, CameraOnlyActivity.class);
+            startActivity(intent);
+        });
+
+        // open full screen map
+        Fragment mapFragment = getSupportFragmentManager().findFragmentById(R.id.map);
+        if (mapFragment != null) {
+            mapFragment.getView().setOnClickListener(v -> {
+                Intent intent = new Intent(CameraActivity.this, MapOnlyActivity.class);
+                startActivity(intent);
+            });
+        }
+
         objectDetectorHelper = new ObjectDetectorHelper(this);
 
         //add logic for sound
@@ -114,7 +133,7 @@ public class CameraActivity extends AppCompatActivity {
                         .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                         .build())
                 .build();
-        //TODO: change sounds for different directions
+
         //soundLeft = soundPool.load(this, R.raw.notification, 1);
         //soundRight = soundPool.load(this, R.raw.notification, 1);
         //soundCenter = soundPool.load(this, R.raw.notification, 1);
@@ -245,14 +264,14 @@ public class CameraActivity extends AppCompatActivity {
 
         imageProxy.close();
 
-        // Update UI with FPS & Stack Size
-        runOnUiThread(() -> {
+        // Update UI with FPS & Stack Size only needed for debug
+        /*runOnUiThread(() -> {
             if (fpsTextView != null) {
                 fpsTextView.setText(String.format("FPS: %.2f\nStack: %d", fps, frameStackSize));
             } else {
                 Log.e("FPS", "fpsTextView is NULL!");
             }
-        });
+        });*/
 
     }
 
