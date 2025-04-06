@@ -13,6 +13,10 @@ public class OverlayView extends View {
     private List<DetectionResult> results;
     private Paint boxPaint;
     private Paint textPaint;
+    private int modelInputWidth = 640;
+    private int modelInputHeight = 640;
+    private int previewWidth = 640;
+    private int previewHeight = 640;
 
     public OverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -32,7 +36,17 @@ public class OverlayView extends View {
 
     public void setResults(List<DetectionResult> results) {
         this.results = results;
-        invalidate(); // refresh the view clearly
+        invalidate(); // refresh the view
+    }
+
+    public void setPreviewSize(int previewWidth, int previewHeight) {
+        this.previewWidth = previewWidth;
+        this.previewHeight = previewHeight;
+    }
+
+    public void setModelInputSize(int modelInputWidth, int modelInputHeight) {
+        this.modelInputWidth = modelInputWidth;
+        this.modelInputHeight = modelInputHeight;
     }
 
     @Override

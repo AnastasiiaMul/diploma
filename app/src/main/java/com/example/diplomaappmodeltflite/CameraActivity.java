@@ -45,87 +45,55 @@ import java.util.concurrent.Executors;
 
 public class CameraActivity extends AppCompatActivity {
 
-    private SessionLogger sessionLogger;
-    private OverlayView overlayView;
     private PreviewView previewView;
+    private OverlayView overlayView;
     private TextView detectionResultsTextView;
-    private ObjectDetectorHelper objectDetectorHelper;
+    private TextView fpsTextView;
+
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
-    private ObjectTracker objectTracker = new ObjectTracker();
+    private ExecutorService inferenceExecutor;
 
-    private static final int NUM_CLASSES = 80;
-    //private static final int NUM_CLASSES = 4;
-    private static final float CONFIDENCE_THRESHOLD = 0.8f;
-    private static final int IMAGE_SIZE = 640; //upd
+    private SoundPool soundPool;
+    private final Map<Integer, Integer> sectorSoundMap = new HashMap<>();
 
-    private static final float NMS_THRESHOLD = 0.5f;
+    private ObjectDetectorHelper objectDetectorHelper;
+    private DetectionProcessor detectionProcessor;
+    private SessionLogger sessionLogger;
 
-    private static final int FRAME_SKIP_INTERVAL = 5; // Run inference every 5th frame
+    private long lastFrameTime = 0;
     private int frameCounter = 0;
 
-    //to calculate fps
-    private TextView fpsTextView;
-    private long lastFrameTime = 0;
-    private float fps = 0;
-    private int frameStackSize = 0;
-
-    // Declare the ExecutorService
-    private ExecutorService inferenceExecutor;
-    //sound setting
-    private SoundPool soundPool;
-    //to use when sound angles
-    //private int soundLeft, soundRight, soundCenter;
-
-    private final Map<Integer, Integer> sectorSoundMap = new HashMap<>();
+    private static final int FRAME_SKIP_INTERVAL = 5;
 
     // data to approximate the distance
     // Constants for object heights (in meters)
-    private static final Map<Integer, Float> OBJECT_HEIGHTS = new HashMap<Integer, Float>() {{
-        put(0, 1.7f); // person
-        put(1, 1.5f); // bicycle
-        put(2, 1.5f); // car
-    }};
-
-    private static final float FOCAL_LENGTH = 500f; // approximate focal length in pixels
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Initialize the executor for running inference asynchronously
-        inferenceExecutor = Executors.newSingleThreadExecutor();
-
         setContentView(R.layout.activity_camera);
-
-        sessionLogger = new SessionLogger(this);
-
-        //display fps
-        fpsTextView = findViewById(R.id.fpsTextView);
-        //display results
-        detectionResultsTextView = findViewById(R.id.detectionResultsTextView);
-        // added overlay
-        overlayView = findViewById(R.id.overlayView);
 
         previewView = findViewById(R.id.cameraPreview);
 
-        // open full screen camera
-        previewView.setOnClickListener(v -> {
-            Intent intent = new Intent(CameraActivity.this, CameraOnlyActivity.class);
-            startActivity(intent);
-        });
+        overlayView = findViewById(R.id.overlayView);
 
-        // open full screen map
+        detectionResultsTextView = findViewById(R.id.detectionResultsTextView);
+        fpsTextView = findViewById(R.id.fpsTextView);
+
+        sessionLogger = new SessionLogger(this);
+
+        inferenceExecutor = Executors.newSingleThreadExecutor();
+
+        previewView.setOnClickListener(v -> startActivity(new Intent(this, CameraOnlyActivity.class)));
+
         Fragment mapFragment = getSupportFragmentManager().findFragmentById(R.id.map);
-        if (mapFragment != null) {
-            mapFragment.getView().setOnClickListener(v -> {
-                Intent intent = new Intent(CameraActivity.this, MapOnlyActivity.class);
-                startActivity(intent);
-            });
+        if (mapFragment != null && mapFragment.getView() != null) {
+            mapFragment.getView().setOnClickListener(v -> startActivity(new Intent(this, MapOnlyActivity.class)));
         }
 
         objectDetectorHelper = new ObjectDetectorHelper(this);
 
-        //add logic for sound
         soundPool = new SoundPool.Builder()
                 .setMaxStreams(5)
                 .setAudioAttributes(new AudioAttributes.Builder()
@@ -134,10 +102,6 @@ public class CameraActivity extends AppCompatActivity {
                         .build())
                 .build();
 
-        //soundLeft = soundPool.load(this, R.raw.notification, 1);
-        //soundRight = soundPool.load(this, R.raw.notification, 1);
-        //soundCenter = soundPool.load(this, R.raw.notification, 1);
-        // Load sounds for all sectors from preferences
         int sectorCount = SectorSoundManager.getNumberOfSectors(this);
         for (int sectorId = 1; sectorId <= sectorCount; sectorId++) {
             String soundName = SectorSoundManager.getSoundForSector(this, sectorId);
@@ -149,27 +113,29 @@ public class CameraActivity extends AppCompatActivity {
                 }
             }
         }
-        cameraProviderFuture = ProcessCameraProvider.getInstance(this);
 
+        detectionProcessor = new DetectionProcessor(this, objectDetectorHelper, overlayView,
+                detectionResultsTextView, soundPool, sectorSoundMap, sessionLogger);
+
+        cameraProviderFuture = ProcessCameraProvider.getInstance(this);
         cameraProviderFuture.addListener(() -> {
             try {
                 ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
-                bindPreview(cameraProvider);
+                bindCamera(cameraProvider);
             } catch (Exception e) {
-                Log.e("CameraX", "Camera provider error", e);
+                Log.e("CameraX", "Error binding camera", e);
             }
         }, ContextCompat.getMainExecutor(this));
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
-
     }
 
-    private void bindPreview(@NonNull ProcessCameraProvider cameraProvider) {
+    private void bindCamera(@NonNull ProcessCameraProvider cameraProvider) {
         Preview preview = new Preview.Builder()
                 .setResolutionSelector(new ResolutionSelector.Builder()
                         .setAspectRatioStrategy(AspectRatioStrategy.RATIO_16_9_FALLBACK_AUTO_STRATEGY)
                         .setResolutionStrategy(new ResolutionStrategy(
-                                new Size(1280, 720), //change from 1280x720 to 256 144
+                                new Size(1280, 720),
                                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
                         .build())
                 .build();
@@ -180,22 +146,47 @@ public class CameraActivity extends AppCompatActivity {
 
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
-        // Add ImageAnalysis to get camera frames
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setResolutionSelector(new ResolutionSelector.Builder()
                         .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
                         .setResolutionStrategy(new ResolutionStrategy(
-                                new Size(640, 640), // changed from 640 640 to 256 144
+                                new Size(640, 640),
                                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
                         .build())
                 .build();
-        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), this::processImage);
 
-        cameraProvider.unbindAll(); // Ensures previous bindings are cleared
+        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), this::analyzeImage);
+
+        cameraProvider.unbindAll();
         cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
+    private void analyzeImage(ImageProxy imageProxy) {
+        Image image = imageProxy.getImage();
+        if (image == null) {
+            imageProxy.close();
+            return;
+        }
+
+        frameCounter++;
+        if (frameCounter % FRAME_SKIP_INTERVAL == 0) {
+            Bitmap bitmap = CameraUtils.toBitmap(image);
+            Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
+            detectionProcessor.process(resizedBitmap);
+        }
+
+        imageProxy.close();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (objectDetectorHelper != null) objectDetectorHelper.close();
+        if (inferenceExecutor != null) inferenceExecutor.shutdown();
+        soundPool.release();
+    }
 
     @Override
     protected void onStart() {
@@ -210,332 +201,10 @@ public class CameraActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 1001) {
-            if (grantResults.length == 0 || grantResults[0] != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                // Permission denied, close the activity.
-                finish();
-            }
+        if (requestCode == 1001 &&
+                (grantResults.length == 0 || grantResults[0] != android.content.pm.PackageManager.PERMISSION_GRANTED)) {
+            finish(); // Close if permission is denied
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (objectDetectorHelper != null) {
-            objectDetectorHelper.close();
-        }
-        // Shutdown the executor to prevent memory leaks
-        if (inferenceExecutor != null) {
-            inferenceExecutor.shutdown();
-        }
-        soundPool.release();
-    }
-
-    private void processImage(ImageProxy imageProxy) {
-        @SuppressLint("UnsafeOptInUsageError")
-        Image image = imageProxy.getImage();
-
-        if (image == null) {
-            imageProxy.close();
-            return;
-        }
-        // Calculate FPS
-        long currentTime = System.nanoTime();
-        if (lastFrameTime != 0) {
-            fps = 1.0f / ((currentTime - lastFrameTime) / 1_000_000_000f);
-        }
-        lastFrameTime = currentTime;
-
-        // Update frame stack size (queue of frames waiting for processing)
-        frameStackSize = imageProxy.getPlanes()[0].getBuffer().remaining();
-        // Increment the frame counter
-        frameCounter++;
-
-        if (frameCounter % FRAME_SKIP_INTERVAL == 0) {
-            Bitmap bitmap = toBitmap(image);
-            Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
-            // for now reducing resolution to achieve higher performance
-            //Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 320, 320, true);
-
-            runInference(resizedBitmap);
-            // Run inference in the background
-            //inferenceExecutor.execute(() -> runInference(resizedBitmap));
-        }
-
-        imageProxy.close();
-
-        // Update UI with FPS & Stack Size only needed for debug
-        /*runOnUiThread(() -> {
-            if (fpsTextView != null) {
-                fpsTextView.setText(String.format("FPS: %.2f\nStack: %d", fps, frameStackSize));
-            } else {
-                Log.e("FPS", "fpsTextView is NULL!");
-            }
-        });*/
-
-    }
-
-    private Bitmap toBitmap(Image image) {
-        YuvImage yuvImage = toYuvImage(image);
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        yuvImage.compressToJpeg(
-                new Rect(0, 0, yuvImage.getWidth(), yuvImage.getHeight()), 90, out);
-        byte[] jpegBytes = out.toByteArray();
-        Bitmap bitmap = BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.length);
-
-        // Rotate bitmap if necessary
-        Matrix matrix = new Matrix();
-        matrix.postRotate(90); // Adjust rotation based on camera orientation
-        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
-    }
-
-    private YuvImage toYuvImage(Image image) {
-        Image.Plane[] planes = image.getPlanes();
-        ByteBuffer yBuffer = planes[0].getBuffer();
-        ByteBuffer uBuffer = planes[1].getBuffer();
-        ByteBuffer vBuffer = planes[2].getBuffer();
-
-        int ySize = yBuffer.remaining();
-        int uSize = uBuffer.remaining();
-        int vSize = vBuffer.remaining();
-
-        byte[] nv21 = new byte[ySize + uSize + vSize];
-
-        // Copy Y
-        yBuffer.get(nv21, 0, ySize);
-
-        // Copy VU (NV21 format)
-        int offset = ySize;
-        byte[] uBytes = new byte[uSize];
-        byte[] vBytes = new byte[vSize];
-
-        vBuffer.get(vBytes);
-        uBuffer.get(uBytes);
-
-        for (int i = 0; i < vSize; i++) {
-            nv21[offset++] = vBytes[i];
-            nv21[offset++] = uBytes[i];
-        }
-
-        return new YuvImage(nv21, ImageFormat.NV21, image.getWidth(), image.getHeight(), null);
-    }
-
-
-    private void runInference(Bitmap bitmap) {
-        Interpreter interpreter = objectDetectorHelper.getInterpreter();
-        if (interpreter == null) {
-            Log.e("Inference", "Interpreter not initialized.");
-            return;
-        }
-
-        // Prepare input buffer [1, 640, 640, 3]
-        float[][][][] inputBuffer = bitmapToInputArray(bitmap);
-
-        // Prepare output buffer (adjust based on model's output shape)
-        float[][][] outputBuffer = new float[1][84][8400]; // adjust based on YOLO model configuration
-
-        // Run inference
-        interpreter.run(inputBuffer, outputBuffer);
-
-        List<DetectionResult> detections = parseYoloOutput(outputBuffer);
-        List<DetectionResult> finalDetections = applyNMS(detections);
-
-        overlayView.setResults(finalDetections); // Update visualization
-
-        // added to display results
-        StringBuilder resultText = new StringBuilder();
-        // Safely update UI on the main thread (async part)
-        /*runOnUiThread(() -> {
-            overlayView.setResults(finalDetections);
-            Log.d("Inference", "Updated UI with new bounding boxes.");
-        });*/
-
-        //old direction sounds logic
-        /*for (DetectionResult det : finalDetections) {
-
-            float objectCenterX = (det.left + det.right) / 2;
-            float imageWidth = bitmap.getWidth();
-
-            // Normalize X position (-1 = left, 0 = center, 1 = right)
-            float normalizedX = (objectCenterX - (imageWidth / 2)) / (imageWidth / 2);
-
-            // Approximate Camera FOV
-            float cameraFOV = 60.0f;
-            float angle = (normalizedX * cameraFOV) / 2;
-
-            // Determine direction
-            String direction;
-            int soundToPlay;
-            if (angle < -10) {
-                direction = "Left";
-                //soundPool.play(soundLeft, 1.0f, 0.2f, 1, 0, 1.0f);  // Louder on left ear
-            } else if (angle > 10) {
-                direction = "Right";
-                //soundPool.play(soundRight, 0.2f, 1.0f, 1, 0, 1.0f);  // Louder on right ear
-            } else {
-                direction = "Center";
-                //soundPool.play(soundCenter, 1.0f, 1.0f, 1, 0, 1.0f);  // Equal volume
-            }
-            // Play sound
-            //soundPool.play(soundToPlay, 1.0f, 1.0f, 1, 0, 1.0f);
-            // display result
-            resultText.append(String.format(Locale.US,
-                    "ID %d | Class %d | %.1f%% | %s | %.1f°\n",
-                    det.objectId, det.detectedClass, det.confidence * 100, direction, angle));
-
-            Log.d("NMS", "ID=" + det.objectId +
-                    ", Class=" + det.detectedClass +
-                    ", Angle=" + angle + "°" +
-                    ", Direction=" + direction +
-                    ", Conf=" + det.confidence +
-                    ", Box=[" + det.left + "," + det.top + "," + det.right + "," + det.bottom + "]");
-        }*/
-        for (DetectionResult det : finalDetections) {
-
-            float boxHeight = det.bottom - det.top;
-            float distance = -1f;
-
-            if (OBJECT_HEIGHTS.containsKey(det.detectedClass)) {
-                float realHeight = OBJECT_HEIGHTS.get(det.detectedClass);
-                distance = Math.max(0, (realHeight * FOCAL_LENGTH) / (boxHeight * 0.5f));
-            }
-
-
-            float objectCenterX = (det.left + det.right) / 2f;
-            float imageWidth = bitmap.getWidth();
-
-            // Divide FOV horizontally into vertical sectors
-            int sectorCount = SectorSoundManager.getNumberOfSectors(this);
-            int sectorId = (int) ((objectCenterX / imageWidth) * sectorCount) + 1;
-            sectorId = Math.min(sectorId, sectorCount); // Safety check
-
-            // --- PLAY SECTOR SOUND ---
-            Integer sectorSoundId = sectorSoundMap.get(sectorId);
-            if (sectorSoundId != null) {
-                float quietVolume = 0.05f;
-                soundPool.play(sectorSoundId, quietVolume, quietVolume, 1, 0, 1.0f);
-                Log.d("SOUND", "Played quiet sector sound for sector " + sectorId);
-            }
-
-            // --- PLAY OBJECT SOUND ---
-            String objectName = CocoLabels.getLabel(det.detectedClass); // Map ID to label like "car", "person".
-            String objectSound = ObjectSoundPreferences.getSoundForObject(this, objectName);
-
-            if (objectSound != null && !objectSound.isEmpty()) {
-                int resId = getResources().getIdentifier(objectSound.toLowerCase(), "raw", getPackageName());
-                if (resId != 0) {
-                    int objectSoundId = soundPool.load(this, resId, 1);
-
-                    float volume = DistanceSettingsActivity.getVolumeForDistance(this, distance);
-
-                    Log.d("SOUND", String.format(Locale.US,
-                            "Object %s | Distance: %.2f m | Volume: %.2f | Sound: %s",
-                            objectName, distance, volume, objectSound));
-
-                    // Delay a little maybe
-                    soundPool.play(objectSoundId, volume, volume, 1, 0, 1.0f);
-                }
-            }
-
-
-            // display result
-            resultText.append(String.format(Locale.US,
-                    "ID %d | Class %d | %.1f%% | Sector %d | Distance: %.2f m\n",
-                    det.objectId, det.detectedClass, det.confidence * 100, sectorId, distance));
-
-
-
-            Log.d("NMS", "ID=" + det.objectId +
-                    ", Class=" + det.detectedClass +
-                    ", Sector=" + sectorId +
-                    ", Distance=" + distance + " m" +
-                    ", Conf=" + det.confidence +
-                    ", Box=[" + det.left + "," + det.top + "," + det.right + "," + det.bottom + "]");
-
-            sessionLogger.log("Detected object ID=" + det.objectId +
-                    ", Class=" + det.detectedClass +
-                    ", Confidence=" + det.confidence);
-
-        }
-
-        runOnUiThread(() -> detectionResultsTextView.setText(resultText.toString()));
-    }
-
-    private float[][][][] bitmapToInputArray(Bitmap bitmap) {
-        int inputSize = 640; //changed to 320 from 640
-        float[][][][] input = new float[1][inputSize][inputSize][3];
-
-        for (int y = 0; y < inputSize; y++) {
-            for (int x = 0; x < inputSize; x++) {
-                int pixel = bitmap.getPixel(x, y);
-
-                // Normalize pixel values to [0,1]
-                input[0][y][x][0] = ((pixel >> 16) & 0xFF) / 255.0f; // R
-                input[0][y][x][1] = ((pixel >> 8) & 0xFF) / 255.0f;  // G
-                input[0][y][x][2] = (pixel & 0xFF) / 255.0f;         // B
-            }
-        }
-
-        return input;
-    }
-
-    private List<DetectionResult> parseYoloOutput(float[][][] output) {
-        List<DetectionResult> results = new ArrayList<>();
-
-        float imageWidth = previewView.getWidth();  // Get actual preview width
-        float imageHeight = previewView.getHeight(); // Get actual preview height
-
-        for (int i = 0; i < output[0][0].length; i++) {
-            float x = output[0][0][i];  // Normalized center x (0-1)
-            float y = output[0][1][i];  // Normalized center y (0-1)
-            float w = output[0][2][i];  // Normalized width (0-1)
-            float h = output[0][3][i];  // Normalized height (0-1)
-
-            int bestClass = -1;
-            float bestConfidence = -1f;
-            for (int c = 0; c < NUM_CLASSES; c++) {
-                float conf = output[0][4 + c][i];
-                if (conf > bestConfidence) {
-                    bestConfidence = conf;
-                    bestClass = c;
-                }
-            }
-
-            if (bestConfidence > CONFIDENCE_THRESHOLD) {
-                // Correctly scale the bounding boxes
-                float left = (x - w / 2f) * imageWidth;
-                float top = (y - h / 2f) * imageHeight;
-                float right = (x + w / 2f) * imageWidth;
-                float bottom = (y + h / 2f) * imageHeight;
-
-                // Get persistent object ID using centroid tracking
-                float centerX = (left + right) / 2;
-                float centerY = (top + bottom) / 2;
-                int objectId = objectTracker.getTrackedObjectId(centerX, centerY);
-
-                results.add(new DetectionResult(objectId, bestClass, bestConfidence, left, top, right, bottom));
-            }
-        }
-
-        return results;
-    }
-
-
-    private List<DetectionResult> applyNMS(List<DetectionResult> detections) {
-        List<DetectionResult> nmsResults = new ArrayList<>();
-
-        detections.sort((d1, d2) -> Float.compare(d2.confidence, d1.confidence));
-
-        while (!detections.isEmpty()) {
-            DetectionResult best = detections.remove(0);
-            nmsResults.add(best);
-
-            detections.removeIf(det ->
-                    det.detectedClass == best.detectedClass &&
-                            best.iou(det) > NMS_THRESHOLD);
-        }
-
-        return nmsResults;
     }
 
 }

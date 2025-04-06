@@ -46,6 +46,12 @@
             android:name=".ObjectsSoundsSettingsActivity"
             android:exported="false" />
         <activity
+            android:name=".CameraOnlyActivity"
+            android:exported="false" />
+        <activity
+            android:name=".MapOnlyActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
