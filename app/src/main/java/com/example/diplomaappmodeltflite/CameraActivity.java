@@ -12,6 +12,7 @@ import android.media.Image;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
+import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -87,10 +88,11 @@ public class CameraActivity extends AppCompatActivity {
 
         previewView.setOnClickListener(v -> startActivity(new Intent(this, CameraOnlyActivity.class)));
 
-        Fragment mapFragment = getSupportFragmentManager().findFragmentById(R.id.map);
-        if (mapFragment != null && mapFragment.getView() != null) {
-            mapFragment.getView().setOnClickListener(v -> startActivity(new Intent(this, MapOnlyActivity.class)));
-        }
+        View mapClickOverlay = findViewById(R.id.mapClickOverlay);
+        mapClickOverlay.setOnClickListener(v -> {
+            Intent intent = new Intent(CameraActivity.this, MapOnlyActivity.class);
+            startActivity(intent);
+        });
 
         objectDetectorHelper = new ObjectDetectorHelper(this);
 
