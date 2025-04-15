@@ -14,7 +14,15 @@ import androidx.appcompat.app.AppCompatActivity;
 public class ObjectsSettingsActivity extends AppCompatActivity {
 
     private LinearLayout objectsButtonsContainer;
-    private String[] objectLabels = {"person", "car", "bicycle", "bench"};
+
+    // ui names
+    private String[] objectLabelsUI = {"Людина", "Автомобіль", "Велосипед", "Лавка", "Пішохідний перехід"};
+
+    // internal keys
+    private String[] objectLabels = {"person", "car", "bicycle", "bench", "crosswalk"};
+
+    // Maps internal key to label and vice versa
+    private final Map<String, String> objectLabelToUI = new HashMap<>();
     private Map<String, TextView> soundLabelsMap = new HashMap<>();
 
     @Override
@@ -24,14 +32,23 @@ public class ObjectsSettingsActivity extends AppCompatActivity {
 
         objectsButtonsContainer = findViewById(R.id.objectsButtonsContainer);
 
-        for (String objectLabel : objectLabels) {
-            // Create object button
+        // Create mapping between internal label and UI label
+        for (int i = 0; i < objectLabels.length; i++) {
+            objectLabelToUI.put(objectLabels[i], objectLabelsUI[i]);
+        }
+
+        // Create UI elements
+        for (int i = 0; i < objectLabels.length; i++) {
+            String internalLabel = objectLabels[i];
+            String uiLabel = objectLabelsUI[i];
+
+            // Create button with UI label
             Button objectButton = new Button(this);
-            objectButton.setText(objectLabel);
+            objectButton.setText(uiLabel);
             objectButton.setTextSize(20);
             objectButton.setOnClickListener(v -> {
                 Intent intent = new Intent(this, ObjectsSoundsSettingsActivity.class);
-                intent.putExtra("objectLabel", objectLabel);
+                intent.putExtra("objectLabel", internalLabel);
                 startActivity(intent);
             });
 
@@ -40,10 +57,10 @@ public class ObjectsSettingsActivity extends AppCompatActivity {
             soundLabel.setTextSize(16);
             soundLabel.setPadding(0, 4, 0, 16);
 
-            updateSoundLabelText(objectLabel, soundLabel);
-            soundLabelsMap.put(objectLabel, soundLabel);
+            updateSoundLabelText(internalLabel, soundLabel);
+            soundLabelsMap.put(internalLabel, soundLabel);
 
-            // Add views to container
+            // Add to container
             objectsButtonsContainer.addView(objectButton);
             objectsButtonsContainer.addView(soundLabel);
         }
