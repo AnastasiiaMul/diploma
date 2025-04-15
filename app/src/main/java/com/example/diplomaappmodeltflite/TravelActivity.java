@@ -51,6 +51,7 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
     private Button btnBack;
     private boolean destinationSelected = false;
     private Geocoder geocoder;
+    private SupportMapFragment mapFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +66,8 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
 
         currentLocationTextView = findViewById(R.id.currentLocationTextView);
         startTravelButton = findViewById(R.id.startTravelButton);
+        mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
@@ -91,7 +94,7 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                 return;
             }
             Log.d(TAG, "Starting CameraActivity with coordinates");
-            Intent intent = new Intent(TravelActivity.this, CameraActivity.class);
+            Intent intent = new Intent(TravelActivity.this, MapOnlyActivity.class);
             intent.putExtra("originLat", currentLat);
             intent.putExtra("originLng", currentLng);
             intent.putExtra("destLat", destLat);
@@ -120,8 +123,10 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                     Log.d(TAG, "Location retrieved: " + location.getLatitude() + ", " + location.getLongitude());
 
                     currentLocation = location;
-                    SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-                    mapFragment.getMapAsync(TravelActivity.this);
+                    if (mapFragment != null) {
+                        mapFragment.getMapAsync(TravelActivity.this);
+                    }
+
 
                     String result = null;
                     try{
