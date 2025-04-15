@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 
 public class TravelActivity extends AppCompatActivity implements OnMapReadyCallback {
+    private static final String TAG = "TravelActivity";
 
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
     Location currentLocation;
@@ -55,6 +56,8 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_travel);
+        Log.d(TAG, "onCreate: TravelActivity started");
+
         geocoder = new Geocoder(this, Locale.getDefault());
 
 
@@ -69,7 +72,10 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
         if (!Places.isInitialized()) {
             String apiKey = getMetaDataApiKey();
             if (apiKey != null) {
+                Log.d(TAG, "Initializing Places SDK");
                 Places.initialize(getApplicationContext(), apiKey);
+            }else {
+                Log.e(TAG, "API key is null");
             }
 
         }
@@ -81,9 +87,10 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
         startTravelButton.setOnClickListener(v -> {
             if (!destinationSelected) {
                 Toast.makeText(this, "Please select a destination.", Toast.LENGTH_SHORT).show();
+                Log.w(TAG, "Start button pressed without destination selected");
                 return;
             }
-
+            Log.d(TAG, "Starting CameraActivity with coordinates");
             Intent intent = new Intent(TravelActivity.this, CameraActivity.class);
             intent.putExtra("originLat", currentLat);
             intent.putExtra("originLng", currentLng);
@@ -97,17 +104,21 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
 
     private void requestLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            Log.d(TAG, "Requesting location permission");
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST);
             return;
         }
+        Log.d(TAG, "Location permissions granted, getting last known location");
 
         Task<Location> task = fusedLocationClient.getLastLocation();
         task.addOnSuccessListener(new OnSuccessListener<Location>() {
             @Override
             public void onSuccess(Location location) {
                 if (location != null){
+                    Log.d(TAG, "Location retrieved: " + location.getLatitude() + ", " + location.getLongitude());
+
                     currentLocation = location;
                     SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
                     mapFragment.getMapAsync(TravelActivity.this);
@@ -123,6 +134,7 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                             // sending back first address line and locality
                             result = address.getAddressLine(0); // + ", " + address.getLocality()
                             currentLocationTextView.setText(result != null ? result : "Location not available");
+                            Log.d(TAG, "Address resolved: " + result);
                         }
 
                     } catch (IOException e) {
@@ -136,6 +148,13 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
     }
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap){
+
+        // for testing purposes
+        googleMap.setOnCameraIdleListener(() -> {
+            Log.d("TravelActivity", "Map camera moved to: " + googleMap.getCameraPosition().target);
+        });
+
+        Log.d(TAG, "onMapReady called");
         Map = googleMap;
 
         LatLng center = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
@@ -198,4 +217,3 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
     }
 
 }
-

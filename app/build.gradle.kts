@@ -67,12 +67,13 @@ dependencies {
     implementation(libs.camera.lifecycle)
     implementation(libs.camera.camera2)
     implementation(libs.camera.core)
-    implementation(libs.places)
+    implementation(libs.places){
+        exclude(group = "com.google.android.gms", module = "play-services-maps")
+    }
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
     // Maps SDK for Android
-    implementation("com.google.android.gms:play-services-maps:19.0.0")
-    implementation("com.google.android.gms:play-services-location:21.3.0")
-    implementation ("com.google.android.libraries.navigation:navigation:6.2.0")
+    implementation(libs.play.services.location)
+    implementation (libs.navigation)
 }

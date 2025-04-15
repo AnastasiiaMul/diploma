@@ -25,6 +25,14 @@
             android:layout_height="wrap_content"
             android:max="30" />
 
+        <TextView
+            android:id="@+id/fontPreviewText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Зразок тексту"
+            android:textSize="16sp"
+            android:layout_marginTop="16dp" />
+
         <!-- Volume Setting -->
         <TextView
             android:id="@+id/volumeLabel"
@@ -39,6 +47,13 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:max="100" />
+
+        <TextView
+            android:id="@+id/volumePreviewText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Гучність: 100%"
+            android:layout_marginTop="16dp" />
 
         <!-- Theme Setting -->
         <TextView
