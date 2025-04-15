@@ -32,6 +32,7 @@ public class DetectionProcessor {
     private static final float CONFIDENCE_THRESHOLD = 0.8f;
     private static final float NMS_THRESHOLD = 0.5f;
     private static final float FOCAL_LENGTH = 500f;
+    private boolean isClosed = false;
 
     private static final Map<Integer, Float> OBJECT_HEIGHTS = new HashMap<Integer, Float>() {{
         put(0, 1.7f); // person
@@ -57,8 +58,21 @@ public class DetectionProcessor {
         this.sessionLogger = sessionLogger;
     }
 
+    public void close() {
+        isClosed = true;
+        if (interpreter != null) {
+            interpreter.close();
+            Log.d("DetectionProcessor", "Interpreter closed.");
+        }
+    }
 
     public void process(Bitmap bitmap) {
+
+        if (isClosed || interpreter == null) {
+            Log.w("DetectionProcessor", "Attempted to process with a closed or null interpreter.");
+            return;
+        }
+
         if (interpreter == null) {
             Log.e("DetectionProcessor", "Interpreter is not initialized.");
             return;
@@ -67,7 +81,12 @@ public class DetectionProcessor {
         float[][][][] inputBuffer = CameraUtils.bitmapToInputArray(bitmap);
         float[][][] outputBuffer = new float[1][84][8400];
 
-        interpreter.run(inputBuffer, outputBuffer);
+        // added to fix bug Internal error: The Interpreter has already been closed.
+        try {
+            interpreter.run(inputBuffer, outputBuffer);
+        }catch (IllegalStateException e) {
+            Log.e("DetectionProcessor", "Interpreter already closed", e);
+        }
 
         List<DetectionResult> detections = parseYoloOutput(outputBuffer, bitmap.getWidth(), bitmap.getHeight());
         List<DetectionResult> finalDetections = applyNMS(detections);

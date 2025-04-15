@@ -185,6 +185,7 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        if (detectionProcessor != null) detectionProcessor.close();
         if (objectDetectorHelper != null) objectDetectorHelper.close();
         if (inferenceExecutor != null) inferenceExecutor.shutdown();
         soundPool.release();
@@ -208,5 +209,51 @@ public class CameraActivity extends AppCompatActivity {
             finish(); // Close if permission is denied
         }
     }
+
+    private void rebindCameraIfNeeded() {
+        if (cameraProviderFuture != null) {
+            cameraProviderFuture.addListener(() -> {
+                try {
+                    ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                    bindCamera(cameraProvider);
+                } catch (Exception e) {
+                    Log.e("CameraX", "Error rebinding camera", e);
+                }
+            }, ContextCompat.getMainExecutor(this));
+        }
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Recreate detector and processor (because interpreter might've been closed)
+        objectDetectorHelper = new ObjectDetectorHelper(this);
+        detectionProcessor = new DetectionProcessor(
+                this,
+                objectDetectorHelper,
+                overlayView,
+                detectionResultsTextView,
+                soundPool,
+                sectorSoundMap,
+                sessionLogger
+        );
+
+        rebindCameraIfNeeded();
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (objectDetectorHelper != null) {
+            objectDetectorHelper.close();
+            objectDetectorHelper = null;
+        }
+    }
+
+
+
 
 }
