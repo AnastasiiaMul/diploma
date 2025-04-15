@@ -13,7 +13,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.libraries.navigation.ListenableResultFuture;
 import com.google.android.libraries.navigation.NavigationApi;
 import com.google.android.libraries.navigation.Navigator;
@@ -30,6 +33,7 @@ public class MapOnlyActivity extends AppCompatActivity {
     private SupportNavigationFragment navFragment;
     private RoutingOptions routingOptions;
     private boolean locationPermissionGranted;
+    private GoogleMap Map;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,10 +41,37 @@ public class MapOnlyActivity extends AppCompatActivity {
         setContentView(R.layout.activity_map_only);
 
         Button backBtn = findViewById(R.id.btnBack);
+        Button btnStopNavigation = findViewById(R.id.btnStopNavigation);
         backBtn.setOnClickListener(v -> finish());
+
+        // Stop navigation when button clicked
+        btnStopNavigation.setOnClickListener(v -> {
+            if (navigator != null) {
+                navigator.stopGuidance();
+                navigator.cleanup();
+                showToast("Навігацію зупинено");
+
+                // Refresh or re-bind map fragment
+                navFragment = (SupportNavigationFragment) getSupportFragmentManager()
+                        .findFragmentById(R.id.fullMap);
+
+                if (navFragment != null) {
+                    navFragment.getMapAsync(map -> {
+                        if (ContextCompat.checkSelfPermission(MapOnlyActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+                                == PackageManager.PERMISSION_GRANTED) {
+                            map.followMyLocation(GoogleMap.CameraPerspective.TILTED);
+                        } else {
+                            showToast("Location permission not granted.");
+                        }
+                    });
+                }
+            }
+        });
+
 
         initializeNavigationSdk();
     }
+
 
     private void initializeNavigationSdk() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)

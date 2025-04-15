@@ -26,6 +26,33 @@
         android:textSize="16sp"
         android:padding="8dp" />
 
+    <!-- Mini Map and Stop Button Container -->
+    <FrameLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_margin="8dp">
+
+        <!-- Mini Navigation Preview -->
+        <fragment
+            android:id="@+id/miniNavigationFragment"
+            android:name="com.google.android.libraries.navigation.SupportNavigationFragment"
+            android:layout_width="160dp"
+            android:layout_height="300dp" />
+
+        <!-- Stop Navigation Button -->
+        <Button
+            android:id="@+id/btnStopNavigation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:text="Зупинити"
+            android:textSize="12sp"
+            android:background="@android:color/holo_red_dark"
+            android:textColor="@android:color/white"
+            android:layout_margin="4dp"/>
+    </FrameLayout>
+
     <!-- Back Button -->
     <Button
         android:id="@+id/btnBack"

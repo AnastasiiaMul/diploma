@@ -1,11 +1,15 @@
 package com.example.diplomaappmodeltflite;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.os.Bundle;
+import android.util.Log;
 import android.util.Size;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
@@ -21,6 +25,10 @@ import androidx.camera.core.resolutionselector.ResolutionSelector;
 import androidx.camera.core.resolutionselector.AspectRatioStrategy;
 import androidx.camera.core.resolutionselector.ResolutionStrategy;
 
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.libraries.navigation.NavigationApi;
+import com.google.android.libraries.navigation.Navigator;
+import com.google.android.libraries.navigation.SupportNavigationFragment;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.HashMap;
@@ -29,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class CameraOnlyActivity extends AppCompatActivity {
+    private static final String TAG = "CameraOnlyActivity";
 
     private PreviewView cameraPreview;
     private OverlayView overlayView;
@@ -47,6 +56,39 @@ public class CameraOnlyActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_only);
+
+        NavigationApi.getNavigator(this, new NavigationApi.NavigatorListener() {
+            @Override
+            public void onNavigatorReady(Navigator navigator) {
+                SupportNavigationFragment navFragment = (SupportNavigationFragment)
+                        getSupportFragmentManager().findFragmentById(R.id.miniNavigationFragment);
+
+
+                if (navFragment != null) {
+                    navFragment.getMapAsync(map -> {
+                        if (ContextCompat.checkSelfPermission(CameraOnlyActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+                                == PackageManager.PERMISSION_GRANTED) {
+                            map.followMyLocation(GoogleMap.CameraPerspective.TILTED);
+                        } else {
+                            showToast("Location permission not granted for camera follow.");
+                        }
+                    });
+                }
+
+                // Stop navigation when button clicked
+                Button btnStopNavigation = findViewById(R.id.btnStopNavigation);
+                btnStopNavigation.setOnClickListener(v -> {
+                    navigator.stopGuidance();
+                    navigator.cleanup();
+                    showToast("Навігацію зупинено");
+                });
+            }
+
+            @Override
+            public void onError(@NavigationApi.ErrorCode int errorCode) {
+                showToast("Navigation error: " + errorCode);
+            }
+        });
 
         cameraPreview = findViewById(R.id.cameraPreviewOnly);
         overlayView = findViewById(R.id.overlayViewOnly);
@@ -99,6 +141,10 @@ public class CameraOnlyActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }, ContextCompat.getMainExecutor(this));
+    }
+    private void showToast(String msg) {
+        Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
+        Log.e(TAG, msg);
     }
 
     @OptIn(markerClass = androidx.camera.core.ExperimentalGetImage.class)
