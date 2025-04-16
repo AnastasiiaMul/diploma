@@ -36,11 +36,15 @@ public class MapOnlyActivity extends AppCompatActivity {
     private SupportNavigationFragment navFragment;
     private RoutingOptions routingOptions;
     private boolean locationPermissionGranted;
+    private CompassManager compassManager;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map_only);
+
+        compassManager = new CompassManager(this);
 
         initializeNavigationSdk();
     }
@@ -87,10 +91,7 @@ public class MapOnlyActivity extends AppCompatActivity {
                     startActivity(intent);
                 });
 
-                compassButton.setOnClickListener(v -> {
-                    String direction = "Північ";
-                    Toast.makeText(MapOnlyActivity.this, direction, Toast.LENGTH_SHORT).show();
-                });
+                compassButton.setOnClickListener(v -> compassManager.startListening());
 
                 stopButton.setOnClickListener(v -> {
                     navigator.stopGuidance();
