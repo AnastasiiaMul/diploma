@@ -2,9 +2,11 @@ package com.example.diplomaappmodeltflite;
 
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -17,6 +19,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.libraries.navigation.CustomControlPosition;
 import com.google.android.libraries.navigation.ListenableResultFuture;
 import com.google.android.libraries.navigation.NavigationApi;
 import com.google.android.libraries.navigation.Navigator;
@@ -33,41 +36,11 @@ public class MapOnlyActivity extends AppCompatActivity {
     private SupportNavigationFragment navFragment;
     private RoutingOptions routingOptions;
     private boolean locationPermissionGranted;
-    private GoogleMap Map;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_map_only);
-
-        Button backBtn = findViewById(R.id.btnBack);
-        Button btnStopNavigation = findViewById(R.id.btnStopNavigation);
-        backBtn.setOnClickListener(v -> finish());
-
-        // Stop navigation when button clicked
-        btnStopNavigation.setOnClickListener(v -> {
-            if (navigator != null) {
-                navigator.stopGuidance();
-                navigator.cleanup();
-                showToast("Навігацію зупинено");
-
-                // Refresh or re-bind map fragment
-                navFragment = (SupportNavigationFragment) getSupportFragmentManager()
-                        .findFragmentById(R.id.fullMap);
-
-                if (navFragment != null) {
-                    navFragment.getMapAsync(map -> {
-                        if (ContextCompat.checkSelfPermission(MapOnlyActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
-                                == PackageManager.PERMISSION_GRANTED) {
-                            map.followMyLocation(GoogleMap.CameraPerspective.TILTED);
-                        } else {
-                            showToast("Location permission not granted.");
-                        }
-                    });
-                }
-            }
-        });
-
 
         initializeNavigationSdk();
     }
@@ -100,6 +73,32 @@ public class MapOnlyActivity extends AppCompatActivity {
                     showToast("Navigation Fragment is null");
                     return;
                 }
+
+                View compassButton = getLayoutInflater().inflate(R.layout.compass_button, null);
+                View stopButton = getLayoutInflater().inflate(R.layout.stop_button, null);
+                View backBtn = getLayoutInflater().inflate(R.layout.back_button, null);
+
+                navFragment.setCustomControl(compassButton, CustomControlPosition.SECONDARY_HEADER);
+                navFragment.setCustomControl(stopButton, CustomControlPosition.FOOTER);
+                navFragment.setCustomControl(backBtn, CustomControlPosition.BOTTOM_START_BELOW);
+
+                backBtn.setOnClickListener(v -> {
+                    Intent intent = new Intent(MapOnlyActivity.this, CameraActivity.class);
+                    startActivity(intent);
+                });
+
+                compassButton.setOnClickListener(v -> {
+                    String direction = "Північ";
+                    Toast.makeText(MapOnlyActivity.this, direction, Toast.LENGTH_SHORT).show();
+                });
+
+                stopButton.setOnClickListener(v -> {
+                    navigator.stopGuidance();
+                    navigator.cleanup();
+                    Toast.makeText(MapOnlyActivity.this, "Навігацію зупинено", Toast.LENGTH_SHORT).show();
+                });
+
+
 
                 navFragment.getMapAsync(map -> {
                     if (ContextCompat.checkSelfPermission(MapOnlyActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)

@@ -1,12 +1,14 @@
 package com.example.diplomaappmodeltflite;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -75,13 +77,19 @@ public class CameraOnlyActivity extends AppCompatActivity {
                     });
                 }
 
+                View mapClickOverlay = findViewById(R.id.mapClickOverlay);
+                mapClickOverlay.setOnClickListener(v -> {
+                    Intent intent = new Intent(CameraOnlyActivity.this, MapOnlyActivity.class);
+                    startActivity(intent);
+                });
+
                 // Stop navigation when button clicked
-                Button btnStopNavigation = findViewById(R.id.btnStopNavigation);
+                /*Button btnStopNavigation = findViewById(R.id.btnStopNavigation);
                 btnStopNavigation.setOnClickListener(v -> {
                     navigator.stopGuidance();
                     navigator.cleanup();
                     showToast("Навігацію зупинено");
-                });
+                });*/
             }
 
             @Override

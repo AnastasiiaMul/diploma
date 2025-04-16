@@ -129,7 +129,10 @@ public class CameraActivity extends AppCompatActivity {
             }
         }, ContextCompat.getMainExecutor(this));
 
-        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
+        findViewById(R.id.btnBack).setOnClickListener(v -> {
+            Intent intent = new Intent(CameraActivity.this, MainActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void bindCamera(@NonNull ProcessCameraProvider cameraProvider) {

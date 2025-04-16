@@ -40,7 +40,15 @@
             android:layout_width="160dp"
             android:layout_height="300dp" />
 
-        <!-- Stop Navigation Button -->
+        <!-- Transparent clickable view -->
+        <View
+            android:id="@+id/mapClickOverlay"
+            android:layout_width="160dp"
+            android:layout_height="300dp"
+            android:clickable="true"
+            android:background="@android:color/transparent"/>
+
+        <!-- Stop Navigation Button
         <Button
             android:id="@+id/btnStopNavigation"
             android:layout_width="wrap_content"
@@ -50,7 +58,7 @@
             android:textSize="12sp"
             android:background="@android:color/holo_red_dark"
             android:textColor="@android:color/white"
-            android:layout_margin="4dp"/>
+            android:layout_margin="4dp"/>-->
     </FrameLayout>
 
     <!-- Back Button -->
