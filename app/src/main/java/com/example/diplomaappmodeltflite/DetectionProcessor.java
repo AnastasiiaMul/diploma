@@ -135,9 +135,9 @@ public class DetectionProcessor {
                     "ID %d | Class %d | %.1f%% | Sector %d | Distance: %.2f m\n",
                     det.objectId, det.detectedClass, det.confidence * 100, sectorId, distance));
 
-            sessionLogger.log("Detected object ID=" + det.objectId +
+            /*sessionLogger.log("Detected object ID=" + det.objectId +
                     ", Class=" + det.detectedClass +
-                    ", Confidence=" + det.confidence);
+                    ", Confidence=" + det.confidence);*/
         }
 
         detectionResultsTextView.post(() -> detectionResultsTextView.setText(resultText.toString()));

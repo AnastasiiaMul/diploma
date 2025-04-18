@@ -4,7 +4,10 @@ package com.example.diplomaappmodeltflite;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.location.Location;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -28,6 +31,12 @@ import com.google.android.libraries.navigation.SimulationOptions;
 import com.google.android.libraries.navigation.SupportNavigationFragment;
 import com.google.android.libraries.navigation.Waypoint;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.Date;
+import java.util.Locale;
+
 public class MapOnlyActivity extends AppCompatActivity {
     private static final String TAG = "MapOnlyActivity";
     private static final int LOCATION_PERMISSION_REQUEST = 1010;
@@ -37,6 +46,12 @@ public class MapOnlyActivity extends AppCompatActivity {
     private RoutingOptions routingOptions;
     private boolean locationPermissionGranted;
     private CompassManager compassManager;
+    private SessionLogger sessionLogger;
+    private double startLat, startLng, destLat, destLng;
+    private String startLocationName, endLocationName;
+    private long startTime;
+    private double tripDistance;
+
 
 
     @Override
@@ -45,6 +60,16 @@ public class MapOnlyActivity extends AppCompatActivity {
         setContentView(R.layout.activity_map_only);
 
         compassManager = new CompassManager(this);
+
+        // Get data passed from TravelActivity
+        startLocationName = getIntent().getStringExtra("startLocationName");
+        endLocationName = getIntent().getStringExtra("endLocationName");
+        tripDistance = getIntent().getDoubleExtra("tripDistanceKm", 0.0);
+
+        sessionLogger = new SessionLogger(this);
+        sessionLogger.setStartLocation(startLocationName);
+        sessionLogger.setEndLocation(endLocationName);
+        sessionLogger.setDistanceKm(tripDistance);
 
         initializeNavigationSdk();
     }
@@ -94,9 +119,24 @@ public class MapOnlyActivity extends AppCompatActivity {
                 compassButton.setOnClickListener(v -> compassManager.startListening());
 
                 stopButton.setOnClickListener(v -> {
-                    navigator.stopGuidance();
-                    navigator.cleanup();
-                    Toast.makeText(MapOnlyActivity.this, "Навігацію зупинено", Toast.LENGTH_SHORT).show();
+                    if (navigator != null) {
+                        navigator.stopGuidance();
+                        navigator.cleanup();
+                    }
+
+                    long durationMillis = SystemClock.elapsedRealtime() - startTime;
+                    String durationFormatted = formatDuration(durationMillis);
+
+                    sessionLogger.setDuration(durationFormatted);
+
+                    captureMapSnapshot();
+
+                    showToast("Навігацію зупинено");
+                });
+
+                backBtn.setOnClickListener(v -> {
+                    startActivity(new Intent(MapOnlyActivity.this, CameraActivity.class));
+                    finish();
                 });
 
 
@@ -117,7 +157,7 @@ public class MapOnlyActivity extends AppCompatActivity {
                 double destLng = getIntent().getDoubleExtra("destLng", 0);
 
                 if (destLat == 0 && destLng == 0) {
-                    showToast("Destination not set.");
+                    //showToast("Destination not set.");
                     return;
                 }
 
@@ -164,6 +204,36 @@ public class MapOnlyActivity extends AppCompatActivity {
     private void showToast(String msg) {
         Toast.makeText(this, msg, Toast.LENGTH_LONG).show();
         Log.e(TAG, msg);
+    }
+
+    private void captureMapSnapshot() {
+        if (navFragment == null) return;
+
+        navFragment.getMapAsync(map -> map.snapshot(bitmap -> {
+            try {
+                File snapshotDir = new File(getFilesDir(), "snapshots");
+                if (!snapshotDir.exists()) snapshotDir.mkdirs();
+
+                String filename = "snapshot_" + new Date().getTime() + ".png";
+                File snapshotFile = new File(snapshotDir, filename);
+
+                try (FileOutputStream out = new FileOutputStream(snapshotFile)) {
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
+                    sessionLogger.setSnapshotPath(snapshotFile.getAbsolutePath());
+                    sessionLogger.finalizeLog();
+                    Log.d(TAG, "Snapshot saved: " + snapshotFile.getAbsolutePath());
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to save snapshot", e);
+            }
+        }));
+    }
+
+    private String formatDuration(long millis) {
+        long seconds = millis / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        return String.format(Locale.US, "%02d:%02d:%02d", hours, minutes % 60, seconds % 60);
     }
 
     @Override

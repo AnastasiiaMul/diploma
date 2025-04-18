@@ -45,6 +45,8 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
 
     private FusedLocationProviderClient fusedLocationClient;
     private double currentLat, currentLng;
+    private String startLocationName, endLocationName;
+    private long startTimeMillis;
     private double destLat, destLng;
     private TextView currentLocationTextView;
     private Button startTravelButton;
@@ -97,8 +99,13 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
             Intent intent = new Intent(TravelActivity.this, MapOnlyActivity.class);
             intent.putExtra("originLat", currentLat);
             intent.putExtra("originLng", currentLng);
+            intent.putExtra("startLocationName", startLocationName);
+
             intent.putExtra("destLat", destLat);
             intent.putExtra("destLng", destLng);
+            intent.putExtra("endLocationName", endLocationName);
+
+            intent.putExtra("startTimeMillis", System.currentTimeMillis());
             startActivity(intent);
         });
 
@@ -146,6 +153,7 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                         Log.e("TravelActivity", "Address error: " + e);
                     }
                     currentLocationTextView.setText(result);
+                    startLocationName = result;
 
                 }
             }
@@ -174,7 +182,7 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
 
         if (autocompleteFragment != null) {
             autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
-            autocompleteFragment.setHint("Destination");
+            autocompleteFragment.setHint("Місце призначення");
 
             autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
                 @Override
@@ -182,6 +190,7 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                     if (place.getLatLng() != null) {
                         destLat = place.getLatLng().latitude;
                         destLng = place.getLatLng().longitude;
+                        endLocationName = place.getFormattedAddress();
                         destinationSelected = true;
                     }
                 }
