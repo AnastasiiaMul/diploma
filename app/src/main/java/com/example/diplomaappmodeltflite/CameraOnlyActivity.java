@@ -172,6 +172,10 @@ public class CameraOnlyActivity extends AppCompatActivity {
 
         preview.setSurfaceProvider(cameraPreview.getSurfaceProvider());
 
+        cameraPreview.post(() -> {
+            overlayView.setPreviewSize(cameraPreview.getWidth(), cameraPreview.getHeight());
+        });
+
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setResolutionSelector(new ResolutionSelector.Builder()

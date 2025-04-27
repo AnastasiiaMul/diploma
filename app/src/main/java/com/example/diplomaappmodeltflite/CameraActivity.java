@@ -10,6 +10,7 @@ import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.media.Image;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
 import android.view.View;
@@ -76,10 +77,15 @@ public class CameraActivity extends AppCompatActivity {
         setContentView(R.layout.activity_camera);
 
         previewView = findViewById(R.id.cameraPreview);
-
         overlayView = findViewById(R.id.overlayView);
-
         detectionResultsTextView = findViewById(R.id.detectionResultsTextView);
+
+        // Get real screen size
+        /*DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        overlayView.setPreviewSize(displayMetrics.widthPixels, displayMetrics.heightPixels);*/
+
+
         fpsTextView = findViewById(R.id.fpsTextView);
 
         sessionLogger = new SessionLogger(this);
@@ -150,6 +156,11 @@ public class CameraActivity extends AppCompatActivity {
                 .build();
 
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
+
+        // Set preview size to OverlayView
+        previewView.post(() -> {
+            overlayView.setPreviewSize(previewView.getWidth(), previewView.getHeight());
+        });
 
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)

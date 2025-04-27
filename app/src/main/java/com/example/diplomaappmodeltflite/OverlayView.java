@@ -15,8 +15,8 @@ public class OverlayView extends View {
     private Paint textPaint;
     private int modelInputWidth = 640;
     private int modelInputHeight = 640;
-    private int previewWidth = 640;
-    private int previewHeight = 640;
+    private int previewWidth = 1080;
+    private int previewHeight = 2400;
 
     public OverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -53,9 +53,18 @@ public class OverlayView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (results != null) {
+            float scaleX = (float) getWidth() / modelInputWidth;
+            float scaleY = (float) getHeight() / modelInputHeight;
+
+
             for (DetectionResult result : results) {
                 // Draw bounding box
-                canvas.drawRect(result.left, result.top, result.right, result.bottom, boxPaint);
+                float left = result.left * scaleX;
+                float top = result.top * scaleY;
+                float right = result.right * scaleX;
+                float bottom = result.bottom * scaleY;
+
+                canvas.drawRect(left, top, right, bottom, boxPaint);
 
                 // Display label: "#ID Class (Confidence)"
                 String className = CocoLabels.LABELS[result.detectedClass]; //diplays cocc
@@ -66,11 +75,10 @@ public class OverlayView extends View {
                 // Draw background for label
                 float textWidth = textPaint.measureText(label);
                 float textSize = textPaint.getTextSize();
-                canvas.drawRect(result.left, result.top - textSize - 10, result.left + textWidth + 10, result.top, boxPaint);
+                canvas.drawRect(left, top - textSize - 10, left + textWidth + 10, top, boxPaint);
 
                 // Draw text label
-                canvas.drawText(label, result.left + 5, result.top - 10, textPaint);
-            }
+                canvas.drawText(label, left + 5, top - 10, textPaint);            }
         }
     }
 }
