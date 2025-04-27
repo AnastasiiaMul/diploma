@@ -16,10 +16,10 @@ public class ObjectsSettingsActivity extends AppCompatActivity {
     private LinearLayout objectsButtonsContainer;
 
     // ui names
-    private String[] objectLabelsUI = {"Людина", "Автомобіль", "Велосипед", "Лавка", "Пішохідний перехід"};
+    private String[] objectLabelsUI = {"Людина", "Автомобіль", "Велосипед", "Лавка", "Пішохідний перехід", "Собака", "Дерево", "Відкритий люк", "Кущ", "Зупинка"};
 
     // internal keys
-    private String[] objectLabels = {"person", "car", "bicycle", "bench", "crosswalk"};
+    private String[] objectLabels = {"person", "car", "bicycle", "bench", "crosswalk", "Dog", "Tree", "mans hole", "Bush", "Bus stop"};
 
     // Maps internal key to label and vice versa
     private final Map<String, String> objectLabelToUI = new HashMap<>();

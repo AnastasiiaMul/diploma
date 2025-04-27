@@ -9,10 +9,25 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class SectorsSettingsActivity extends AppCompatActivity {
 
     private EditText numSectorsInput;
     private LinearLayout sectorsButtonsContainer;
+
+    // Mapping system sounds to UI names
+    private static final Map<String, String> soundUIMap = new HashMap<>();
+    static {
+        soundUIMap.put("sector1", "До");
+        soundUIMap.put("sector2", "Ре");
+        soundUIMap.put("sector3", "Мі");
+        soundUIMap.put("sector4", "Фа");
+        soundUIMap.put("sector5", "Соль");
+        soundUIMap.put("sector6", "Ля");
+        soundUIMap.put("sector7", "Сі");
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,16 +71,25 @@ public class SectorsSettingsActivity extends AppCompatActivity {
             TextView soundLabel = new TextView(this);
             soundLabel.setTextSize(16);
             soundLabel.setPadding(0, 4, 0, 16);
-            String sound = SectorSoundManager.getSoundForSector(this, sectorId);
-            if (sound == null || sound.isEmpty()) {
-                sound = "Звук за замовчуванням";
+
+            String savedSound = SectorSoundManager.getSoundForSector(this, sectorId);
+            String uiFriendlyName = getUiNameForSound(savedSound);
+
+            if (uiFriendlyName == null) {
+                soundLabel.setText("Обраний звук: Звук за замовчуванням");
+            } else {
+                soundLabel.setText("Обраний звук: " + uiFriendlyName);
             }
-            soundLabel.setText("Обраний звук: " + sound);
 
             // Add to layout
             sectorsButtonsContainer.addView(sectorButton);
             sectorsButtonsContainer.addView(soundLabel);
         }
+    }
+
+    private String getUiNameForSound(String systemSoundName) {
+        if (systemSoundName == null) return null;
+        return soundUIMap.getOrDefault(systemSoundName, null);
     }
 
     @Override
