@@ -2,6 +2,7 @@ package com.example.diplomaappmodeltflite;
 
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.media.SoundPool;
 import android.util.Log;
@@ -34,6 +35,17 @@ public class DetectionProcessor {
     private static final float FOCAL_LENGTH = 500f;
     private boolean isClosed = false;
 
+    // New for frequency management
+    private final Map<Integer, Long> lastPlayedTimePerObject = new HashMap<>();
+    private long lastGlobalSoundTime = 0L;
+    private int objectSoundCooldownMs = 2000;  // Default 2 seconds
+    private int globalSoundPauseMs = 500;      // Default 0.5 seconds
+    private String detectionIntervalMode = "Seconds"; // Default detection mode
+    private int detectionIntervalValue = 10;   // Default 10 seconds or frames
+    private long lastDetectionTimestamp = 0;
+    private int frameCounter = 0;
+
+
     private static final Map<Integer, Float> OBJECT_HEIGHTS = new HashMap<Integer, Float>() {{
         put(0, 1.7f); // person
         put(1, 1.5f); // bicycle
@@ -56,6 +68,13 @@ public class DetectionProcessor {
         this.soundPool = soundPool;
         this.sectorSoundMap = sectorSoundMap;
         this.sessionLogger = sessionLogger;
+
+        SharedPreferences prefs = context.getSharedPreferences("FrequencyPrefs", Context.MODE_PRIVATE);
+        objectSoundCooldownMs = prefs.getInt("object_sound_cooldown_ms", 2000);
+        globalSoundPauseMs = prefs.getInt("global_sound_pause_ms", 500);
+        detectionIntervalValue = prefs.getInt("detection_interval_value", 10);
+        detectionIntervalMode = prefs.getString("detection_interval_mode", "Seconds");
+
     }
 
     public void close() {
@@ -71,6 +90,20 @@ public class DetectionProcessor {
         if (isClosed || interpreter == null) {
             Log.w("DetectionProcessor", "Attempted to process with a closed or null interpreter.");
             return;
+        }
+        // Detection interval logic
+        frameCounter++;
+        long currentTime = System.currentTimeMillis();
+
+        if (detectionIntervalMode.equals("Frames")) {
+            if (frameCounter % detectionIntervalValue != 0) {
+                return;
+            }
+        } else { // Seconds mode
+            if (currentTime - lastDetectionTimestamp < detectionIntervalValue * 1000L) {
+                return;
+            }
+            lastDetectionTimestamp = currentTime;
         }
 
         if (interpreter == null) {
@@ -109,26 +142,37 @@ public class DetectionProcessor {
             int sectorId = (int) ((objectCenterX / bitmap.getWidth()) * sectorCount) + 1;
             sectorId = Math.min(sectorId, sectorCount);
 
-            // Sector sound
-            Integer sectorSoundId = sectorSoundMap.get(sectorId);
-            if (sectorSoundId != null) {
-                float quietVolume = 0.05f;
-                soundPool.play(sectorSoundId, quietVolume, quietVolume, 1, 0, 1.0f);
-                Log.d("SOUND", "Played sector sound for sector " + sectorId);
-            }
+            long now = System.currentTimeMillis();
+            boolean canPlayGlobal = now - lastGlobalSoundTime > globalSoundPauseMs;
+            Long lastObjectSoundTime = lastPlayedTimePerObject.get(det.objectId);
+            boolean canPlayObject = lastObjectSoundTime == null || (now - lastObjectSoundTime > objectSoundCooldownMs);
 
-            // Object sound
-            String objectName = CocoLabels.getLabel(det.detectedClass);
-            String objectSound = ObjectSoundPreferences.getSoundForObject(context, objectName);
 
-            if (objectSound != null && !objectSound.isEmpty()) {
-                int resId = context.getResources().getIdentifier(objectSound.toLowerCase(), "raw", context.getPackageName());
-                if (resId != 0) {
-                    int objectSoundId = soundPool.load(context, resId, 1);
-                    float volume = DistanceSettingsActivity.getVolumeForDistance(context, distance);
-                    soundPool.play(objectSoundId, volume, volume, 1, 0, 1.0f);
-                    Log.d("SOUND", String.format(Locale.US, "Played sound for %s | Distance %.2f m | Volume %.2f", objectName, distance, volume));
+            if (canPlayGlobal && canPlayObject) {
+                // Sector sound
+                Integer sectorSoundId = sectorSoundMap.get(sectorId);
+                if (sectorSoundId != null) {
+                    float quietVolume = 0.05f;
+                    soundPool.play(sectorSoundId, quietVolume, quietVolume, 1, 0, 1.0f);
+                    Log.d("SOUND", "Played sector sound for sector " + sectorId);
                 }
+
+                // Object sound
+                String objectName = CocoLabels.getLabel(det.detectedClass);
+                String objectSound = ObjectSoundPreferences.getSoundForObject(context, objectName);
+
+                if (objectSound != null && !objectSound.isEmpty()) {
+                    int resId = context.getResources().getIdentifier(objectSound.toLowerCase(), "raw", context.getPackageName());
+                    if (resId != 0) {
+                        int objectSoundId = soundPool.load(context, resId, 1);
+                        float volume = DistanceSettingsActivity.getVolumeForDistance(context, distance);
+                        soundPool.play(objectSoundId, volume, volume, 1, 0, 1.0f);
+                        Log.d("SOUND", String.format(Locale.US, "Played sound for %s | Distance %.2f m | Volume %.2f", objectName, distance, volume));
+                    }
+                }
+
+                lastPlayedTimePerObject.put(det.objectId, now);
+                lastGlobalSoundTime = now;
             }
 
             resultText.append(String.format(Locale.US,
