@@ -95,7 +95,11 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                 Log.w(TAG, "Start button pressed without destination selected");
                 return;
             }
-            Log.d(TAG, "Starting CameraActivity with coordinates");
+            Log.d(TAG, "Saving travel data and starting MapOnlyActivity");
+
+            // Save data into SharedPreferences
+            saveTravelSession(currentLat, currentLng, startLocationName, destLat, destLng, endLocationName);
+
             Intent intent = new Intent(TravelActivity.this, MapOnlyActivity.class);
             intent.putExtra("originLat", currentLat);
             intent.putExtra("originLng", currentLng);
@@ -111,6 +115,20 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
 
         btnBack.setOnClickListener(v -> finish());
     }
+
+    private void saveTravelSession(double originLat, double originLng, String startName,
+                                   double destLat, double destLng, String endName) {
+        getSharedPreferences("TravelSession", MODE_PRIVATE)
+                .edit()
+                .putFloat("originLat", (float) originLat)
+                .putFloat("originLng", (float) originLng)
+                .putString("startLocationName", startName)
+                .putFloat("destLat", (float) destLat)
+                .putFloat("destLng", (float) destLng)
+                .putString("endLocationName", endName)
+                .apply();
+    }
+
 
     private void requestLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {

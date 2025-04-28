@@ -1,13 +1,19 @@
 package com.example.diplomaappmodeltflite;
 
 import android.annotation.SuppressLint;
+import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
 import android.media.Image;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
@@ -18,13 +24,18 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.common.util.concurrent.ListenableFuture;
 import androidx.camera.core.resolutionselector.ResolutionSelector;
 import androidx.camera.core.resolutionselector.AspectRatioStrategy;
@@ -44,6 +55,22 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdateFactory;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.Place;
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
+
 
 public class CameraActivity extends AppCompatActivity {
 
@@ -70,6 +97,15 @@ public class CameraActivity extends AppCompatActivity {
     // data to approximate the distance
     // Constants for object heights (in meters)
 
+    private TextView navigationInfoTextView;
+    private FusedLocationProviderClient fusedLocationClient;
+    private Geocoder geocoder;
+
+    private double originLat, originLng;
+    private double destLat, destLng;
+    private String startLocationName, endLocationName;
+    private boolean navigationStarted = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,6 +121,14 @@ public class CameraActivity extends AppCompatActivity {
         getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
         overlayView.setPreviewSize(displayMetrics.widthPixels, displayMetrics.heightPixels);*/
 
+        navigationInfoTextView = findViewById(R.id.navigationInfoTextView);
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        geocoder = new Geocoder(this, Locale.getDefault());
+        // Fetch and show location
+        loadTravelSession();
+        requestCurrentLocation();
+
 
         fpsTextView = findViewById(R.id.fpsTextView);
 
@@ -94,11 +138,11 @@ public class CameraActivity extends AppCompatActivity {
 
         previewView.setOnClickListener(v -> startActivity(new Intent(this, CameraOnlyActivity.class)));
 
-        View mapClickOverlay = findViewById(R.id.mapClickOverlay);
+        /*View mapClickOverlay = findViewById(R.id.mapClickOverlay);
         mapClickOverlay.setOnClickListener(v -> {
             Intent intent = new Intent(CameraActivity.this, MapOnlyActivity.class);
             startActivity(intent);
-        });
+        });*/
 
         objectDetectorHelper = new ObjectDetectorHelper(this);
 
@@ -196,6 +240,22 @@ public class CameraActivity extends AppCompatActivity {
         imageProxy.close();
     }
 
+    private void loadTravelSession() {
+        SharedPreferences prefs = getSharedPreferences("TravelSession", MODE_PRIVATE);
+
+        originLat = prefs.getFloat("originLat", 0);
+        originLng = prefs.getFloat("originLng", 0);
+        startLocationName = prefs.getString("startLocationName", "Поточна локація");
+        destLat = prefs.getFloat("destLat", 0);
+        destLng = prefs.getFloat("destLng", 0);
+        endLocationName = prefs.getString("endLocationName", "Пункт призначення");
+
+        navigationStarted = (destLat != 0 && destLng != 0); // Only if destination was properly set
+
+        Log.d("CameraActivity", "Travel session loaded: " + startLocationName + " -> " + endLocationName);
+    }
+
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -237,6 +297,53 @@ public class CameraActivity extends AppCompatActivity {
         }
     }
 
+    private void requestCurrentLocation() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 101);
+            return;
+        }
+
+        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+            if (location != null) {
+                updateFullNavigationInfo(location);
+            }
+        });
+    }
+
+
+
+    private void updateFullNavigationInfo(Location currentLocation) {
+        StringBuilder info = new StringBuilder();
+
+        // --- Part 1: Current Location ---
+        try {
+            List<Address> addresses = geocoder.getFromLocation(currentLocation.getLatitude(), currentLocation.getLongitude(), 1);
+            if (addresses != null && !addresses.isEmpty()) {
+                Address address = addresses.get(0);
+                info.append("Поточна локація:\n").append(address.getAddressLine(0));
+            } else {
+                info.append("Поточна локація: Невідома");
+            }
+        } catch (Exception e) {
+            info.append("Поточна локація: Помилка");
+        }
+
+        // --- Part 2: Start and Destination (only if navigation started) ---
+        if (navigationStarted) {
+            info.append("\n\nПункт відправлення: ").append(startLocationName != null ? startLocationName : "Невідомо");
+            info.append("\nПункт призначення: ").append(endLocationName != null ? endLocationName : "Невідомо");
+
+            float[] result = new float[1];
+            Location.distanceBetween(currentLocation.getLatitude(), currentLocation.getLongitude(), destLat, destLng, result);
+            float distanceInMeters = result[0];
+            info.append(String.format(Locale.US, "\nВідстань до цілі: %.2f м", distanceInMeters));
+        } else {
+            info.append("\n\nНавігація не запущена.");
+        }
+
+        navigationInfoTextView.setText(info.toString());
+    }
+
 
     @Override
     protected void onResume() {
@@ -255,8 +362,8 @@ public class CameraActivity extends AppCompatActivity {
         );
 
         rebindCameraIfNeeded();
+        loadTravelSession();
     }
-
 
     @Override
     protected void onPause() {
@@ -266,8 +373,4 @@ public class CameraActivity extends AppCompatActivity {
             objectDetectorHelper = null;
         }
     }
-
-
-
-
 }

@@ -52,7 +52,23 @@
             android:layout_gravity="start|top"/>
     </FrameLayout>
 
-    <!-- Bottom Half: Google Map (50%) -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#FFEEEEEE">
+
+        <TextView
+            android:id="@+id/navigationInfoTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="Поточна локація буде тут..."
+            android:textColor="#000000"
+            android:textSize="16sp"/>
+    </ScrollView>
+
+    <!-- Bottom Half: Google Map (50%)
     <FrameLayout
         android:id="@+id/mapContainer"
         android:layout_width="match_parent"
@@ -65,12 +81,12 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"/>
 
-        <!-- Transparent clickable view -->
+        <!- Transparent clickable view
         <View
             android:id="@+id/mapClickOverlay"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clickable="true"
             android:background="@android:color/transparent"/>
-    </FrameLayout>
+    </FrameLayout> -->
 </LinearLayout>

@@ -38,6 +38,14 @@
         android:layout_marginTop="12dp" />
 
     <Button
+        android:id="@+id/frequencySettings"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:text="Налаштування частоти"
+        android:textSize="24sp"
+        android:layout_marginTop="12dp" />
+
+    <Button
         android:id="@+id/btnTrip"
         android:layout_width="match_parent"
         android:layout_height="80dp"
