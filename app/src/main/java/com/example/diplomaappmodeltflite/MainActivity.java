@@ -20,6 +20,7 @@ public class MainActivity extends AppCompatActivity {
     private Button objectDistanceSettings;
     private Button objectSoundSettings;
     private Button btnTrip;
+    private Button frequencySettings;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
         objectDistanceSettings = findViewById(R.id.objectDistanceSettings);
         objectSoundSettings = findViewById(R.id.objectSoundSettings);
         btnTrip = findViewById(R.id.btnTrip);
+        frequencySettings = findViewById(R.id.frequencySettings);
 
         btnStartDetection.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, CameraActivity.class);
@@ -66,6 +68,11 @@ public class MainActivity extends AppCompatActivity {
 
         btnTrip.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, TravelActivity.class);
+            startActivity(intent);
+        });
+
+        frequencySettings.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, FrequencyActivity.class);
             startActivity(intent);
         });
 

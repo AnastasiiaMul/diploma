@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/textViewTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Налаштування частоти"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:paddingBottom="24dp" />
+
+        <!-- Object Sound Cooldown -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Затримка звуків об'єктів (ms)"
+            android:textSize="24sp" />
+
+        <SeekBar
+            android:id="@+id/seekBarObjectCooldown"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="5000" />
+
+        <TextView
+            android:id="@+id/textViewObjectCooldownValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2000 ms"
+            android:textSize="24sp"
+            android:gravity="center_horizontal"
+            android:paddingBottom="16dp" />
+
+        <!-- Global Sound Pause -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Загальна пауза між звуками (ms)"
+            android:textSize="24sp" />
+
+        <SeekBar
+            android:id="@+id/seekBarGlobalPause"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="2000" />
+
+        <TextView
+            android:id="@+id/textViewGlobalPauseValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="500 ms"
+            android:textSize="24sp"
+            android:gravity="center_horizontal"
+            android:paddingBottom="16dp" />
+
+        <!-- Detection Interval -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Частота виявлення"
+            android:textSize="24sp" />
+
+        <Spinner
+            android:id="@+id/spinnerDetectionMode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8dp" />
+
+        <SeekBar
+            android:id="@+id/seekBarDetectionInterval"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="30"
+            android:textSize="24sp"/>
+
+        <TextView
+            android:id="@+id/textViewDetectionIntervalValue"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="10 seconds"
+            android:gravity="center_horizontal"
+            android:paddingBottom="24dp"
+            android:textSize="24sp"/>
+
+        <!-- Save Button -->
+        <Button
+            android:id="@+id/buttonSaveFrequency"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Зберегти налаштування"
+            android:textSize="24sp"/>
+
+        <!-- Back Button -->
+        <Button
+            android:id="@+id/buttonBack"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Назад"
+            android:textSize="24sp"
+            android:layout_marginTop="12dp" />
+
+    </LinearLayout>
+
+</ScrollView>

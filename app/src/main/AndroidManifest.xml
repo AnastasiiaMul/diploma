@@ -60,6 +60,9 @@
             android:name=".TravelActivity"
             android:exported="false" />
         <activity
+            android:name=".FrequencyActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>
