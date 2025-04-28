@@ -10,8 +10,11 @@ import android.widget.ListView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class HistoryActivity extends AppCompatActivity {
 
@@ -32,12 +35,20 @@ public class HistoryActivity extends AppCompatActivity {
 
         File[] files = logsDir.listFiles();
         logFiles = new ArrayList<>();
-
         List<String> fileNames = new ArrayList<>();
+
         if (files != null) {
             for (File file : files) {
                 logFiles.add(file);
-                fileNames.add(file.getName().replace(".txt", ""));
+                String name = file.getName().replace(".txt", "");
+
+                try {
+                    long timestamp = Long.parseLong(name);
+                    String formattedDate = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date(timestamp));
+                    fileNames.add(formattedDate);
+                } catch (NumberFormatException e) {
+                    fileNames.add(name);
+                }
             }
         }
 

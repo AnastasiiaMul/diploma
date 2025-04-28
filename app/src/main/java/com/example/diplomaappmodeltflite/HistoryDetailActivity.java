@@ -9,11 +9,15 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class HistoryDetailActivity extends AppCompatActivity {
 
@@ -43,12 +47,35 @@ public class HistoryDetailActivity extends AppCompatActivity {
                     JSONObject session = new JSONObject(content);
                     StringBuilder formatted = new StringBuilder();
 
-                    formatted
-                    .append("Час подорожі: ").append(session.getString("timestamp")).append("\n")
-                            .append("З: ").append(session.getString("startLocationName")).append("\n")
-                            .append("До: ").append(session.getString("endLocationName")).append("\n")
-                            .append("Відстань: ").append(session.getDouble("distanceKm")).append(" km\n")
-                            .append("Тривалість: ").append(session.getString("duration")).append("\n");
+                    // Timestamp formatting
+                    long timestampMillis = session.optLong("timestamp", 0);
+                    String formattedTimestamp = timestampMillis > 0
+                            ? new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(new Date(timestampMillis))
+                            : "Unknown";
+
+                    formatted.append("Початок: ").append(formattedTimestamp).append("\n\n");
+                    formatted.append("Звідки: ").append(session.optString("startLocationName", "Невідомо")).append("\n");
+                    formatted.append("Куди: ").append(session.optString("endLocationName", "Невідомо")).append("\n\n");
+
+                    formatted.append("Запланована дистанція: ").append(session.optDouble("plannedDistanceKm", 0.0)).append(" km\n");
+                    formatted.append("Пройдена дистанція: ").append(session.optDouble("distanceKm", 0.0)).append(" km\n\n");
+
+                    formatted.append("Тривалість: ").append(session.optString("duration", "Невідомо")).append("\n\n");
+
+                    // Legs display
+                    JSONArray legsArray = session.optJSONArray("legs");
+                    if (legsArray != null && legsArray.length() > 0) {
+                        formatted.append("Етапи маршруту:\n");
+                        for (int i = 0; i < legsArray.length(); i++) {
+                            JSONObject leg = legsArray.getJSONObject(i);
+                            long seconds = leg.optLong("seconds", 0);
+                            double meters = leg.optDouble("meters", 0.0);
+                            formatted.append(" - Leg ").append(i + 1)
+                                    .append(": Time = ").append(seconds).append("s, Distance = ").append(meters / 1000.0).append(" km\n");
+                        }
+                        formatted.append("\n");
+                    }
+
                     textViewSessionLogs.setText(formatted.toString());
 
                     // Load and display snapshot
@@ -63,15 +90,15 @@ public class HistoryDetailActivity extends AppCompatActivity {
                     }
 
                 } else {
-                    textViewSessionLogs.setText("⚠️ Not a valid session log.");
+                    textViewSessionLogs.setText("Невалідна сесія");
                 }
 
             } catch (Exception e) {
-                textViewSessionLogs.setText("Failed to read session log:\n" + e.getMessage());
+                textViewSessionLogs.setText("Невдалося зчитати логи сесії:\n" + e.getMessage());
             }
 
         } else {
-            textViewSessionLogs.setText("No log file provided.");
+            textViewSessionLogs.setText("Не надано файлу логування.");
         }
 
         findViewById(R.id.btnBack).setOnClickListener(v -> finish());
