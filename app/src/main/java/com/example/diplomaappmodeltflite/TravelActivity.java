@@ -26,6 +26,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
+import com.google.android.libraries.navigation.NavigationApi;
+import com.google.android.libraries.navigation.Navigator;
+import com.google.android.libraries.navigation.RoutingOptions;
+import com.google.android.libraries.navigation.Waypoint;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
@@ -100,17 +104,54 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
             // Save data into SharedPreferences
             saveTravelSession(currentLat, currentLng, startLocationName, destLat, destLng, endLocationName);
 
-            Intent intent = new Intent(TravelActivity.this, MapOnlyActivity.class);
-            intent.putExtra("originLat", currentLat);
-            intent.putExtra("originLng", currentLng);
-            intent.putExtra("startLocationName", startLocationName);
+            NavigationSessionManager.getInstance().startNavigation(TravelActivity.this, new NavigationApi.NavigatorListener() {
+                @Override
+                public void onNavigatorReady(Navigator navigator) {
+                    Log.d(TAG, "Navigator ready in TravelActivity");
 
-            intent.putExtra("destLat", destLat);
-            intent.putExtra("destLng", destLng);
-            intent.putExtra("endLocationName", endLocationName);
+                    try {
+                        // Set destination
+                        Waypoint destination = Waypoint.builder()
+                                .setLatLng(destLat, destLng)
+                                .build();
+                        Log.d(TAG, "set destination" + destLng + " " + destLat);
 
-            intent.putExtra("startTimeMillis", System.currentTimeMillis());
-            startActivity(intent);
+                        navigator.setAudioGuidance(Navigator.AudioGuidance.VOICE_ALERTS_AND_GUIDANCE);
+
+                        navigator.setDestination(destination, new RoutingOptions())
+                                .setOnResultListener(routeStatus -> {
+                                    if (routeStatus == Navigator.RouteStatus.OK) {
+                                        Log.d(TAG, "Route calculated successfully, starting guidance...");
+                                        navigator.startGuidance();
+
+                                        // Now open the MapOnlyActivity
+                                        Intent intent = new Intent(TravelActivity.this, MapOnlyActivity.class);
+                                        intent.putExtra("originLat", currentLat);
+                                        intent.putExtra("originLng", currentLng);
+                                        intent.putExtra("startLocationName", startLocationName);
+                                        intent.putExtra("destLat", destLat);
+                                        intent.putExtra("destLng", destLng);
+                                        intent.putExtra("endLocationName", endLocationName);
+                                        intent.putExtra("startTimeMillis", System.currentTimeMillis());
+                                        startActivity(intent);
+                                    } else {
+                                        Log.e(TAG, "Failed to calculate route: " + routeStatus);
+                                        Toast.makeText(TravelActivity.this, "Failed to calculate route.", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+
+                    } catch (Exception e) {
+                        Log.e(TAG, "Exception while setting destination", e);
+                        Toast.makeText(TravelActivity.this, "Navigation setup failed.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+
+                @Override
+                public void onError(@NavigationApi.ErrorCode int errorCode) {
+                    Log.e(TAG, "Failed to start navigator: " + errorCode);
+                    Toast.makeText(TravelActivity.this, "Failed to start navigation.", Toast.LENGTH_SHORT).show();
+                }
+            });
         });
 
         btnBack.setOnClickListener(v -> finish());

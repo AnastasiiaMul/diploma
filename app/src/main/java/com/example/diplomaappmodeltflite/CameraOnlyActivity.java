@@ -59,7 +59,7 @@ public class CameraOnlyActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_only);
 
-        NavigationApi.getNavigator(this, new NavigationApi.NavigatorListener() {
+        /*NavigationApi.getNavigator(this, new NavigationApi.NavigatorListener() {
             @Override
             public void onNavigatorReady(Navigator navigator) {
                 SupportNavigationFragment navFragment = (SupportNavigationFragment)
@@ -82,21 +82,37 @@ public class CameraOnlyActivity extends AppCompatActivity {
                     Intent intent = new Intent(CameraOnlyActivity.this, MapOnlyActivity.class);
                     startActivity(intent);
                 });
-
-                // Stop navigation when button clicked
-                /*Button btnStopNavigation = findViewById(R.id.btnStopNavigation);
-                btnStopNavigation.setOnClickListener(v -> {
-                    navigator.stopGuidance();
-                    navigator.cleanup();
-                    showToast("Навігацію зупинено");
-                });*/
             }
 
             @Override
             public void onError(@NavigationApi.ErrorCode int errorCode) {
                 showToast("Navigation error: " + errorCode);
             }
-        });
+        });*/
+
+        SupportNavigationFragment navFragment = (SupportNavigationFragment)
+                getSupportFragmentManager().findFragmentById(R.id.miniNavigationFragment);
+
+        if (navFragment != null && NavigationSessionManager.getInstance().isNavigationRunning()) {
+            Navigator navigator = NavigationSessionManager.getInstance().getNavigator();
+
+            navFragment.getMapAsync(map -> {
+                if (ContextCompat.checkSelfPermission(CameraOnlyActivity.this, Manifest.permission.ACCESS_FINE_LOCATION)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    map.followMyLocation(GoogleMap.CameraPerspective.TILTED);
+                } else {
+                    showToast("Location permission not granted for camera follow.");
+                }
+            });
+
+            View mapClickOverlay = findViewById(R.id.mapClickOverlay);
+            mapClickOverlay.setOnClickListener(v -> {
+                Intent intent = new Intent(CameraOnlyActivity.this, MapOnlyActivity.class);
+                startActivity(intent);
+            });
+        } else {
+            showToast("Navigation not running.");
+        }
 
         cameraPreview = findViewById(R.id.cameraPreviewOnly);
         overlayView = findViewById(R.id.overlayViewOnly);
