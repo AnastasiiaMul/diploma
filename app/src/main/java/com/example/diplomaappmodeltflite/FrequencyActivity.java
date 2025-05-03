@@ -4,16 +4,17 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 public class FrequencyActivity extends AppCompatActivity {
 
-    private SeekBar seekBarObjectCooldown, seekBarGlobalPause, seekBarDetectionInterval;
-    private TextView textViewObjectCooldownValue, textViewGlobalPauseValue, textViewDetectionIntervalValue;
+    private EditText editObjectCooldown, editGlobalPause, editDetectionInterval;
     private Spinner spinnerDetectionMode;
     private Button buttonSave, buttonBack;
 
@@ -26,13 +27,9 @@ public class FrequencyActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_frequency);
 
-        seekBarObjectCooldown = findViewById(R.id.seekBarObjectCooldown);
-        seekBarGlobalPause = findViewById(R.id.seekBarGlobalPause);
-        seekBarDetectionInterval = findViewById(R.id.seekBarDetectionInterval);
-
-        textViewObjectCooldownValue = findViewById(R.id.textViewObjectCooldownValue);
-        textViewGlobalPauseValue = findViewById(R.id.textViewGlobalPauseValue);
-        textViewDetectionIntervalValue = findViewById(R.id.textViewDetectionIntervalValue);
+        editObjectCooldown = findViewById(R.id.editObjectCooldown);
+        editGlobalPause = findViewById(R.id.editGlobalPause);
+        editDetectionInterval = findViewById(R.id.editDetectionInterval);
 
         spinnerDetectionMode = findViewById(R.id.spinnerDetectionMode);
         buttonSave = findViewById(R.id.buttonSaveFrequency);
@@ -42,7 +39,6 @@ public class FrequencyActivity extends AppCompatActivity {
 
         setupSpinner();
         loadPreferences();
-        setupListeners();
 
         buttonSave.setOnClickListener(v -> savePreferences());
         buttonBack.setOnClickListener(v -> finish());
@@ -61,56 +57,32 @@ public class FrequencyActivity extends AppCompatActivity {
         int detectionInterval = preferences.getInt("detection_interval_value", 10);
         String detectionMode = preferences.getString("detection_interval_mode", "Seconds");
 
-        seekBarObjectCooldown.setProgress(objectCooldown);
-        seekBarGlobalPause.setProgress(globalPause);
-        seekBarDetectionInterval.setProgress(detectionInterval);
-
-        textViewObjectCooldownValue.setText(objectCooldown + " ms");
-        textViewGlobalPauseValue.setText(globalPause + " ms");
-        textViewDetectionIntervalValue.setText(detectionMode.equals("Seconds")
-                ? detectionInterval + " seconds"
-                : detectionInterval + " frames");
+        editObjectCooldown.setText(String.valueOf(objectCooldown));
+        editGlobalPause.setText(String.valueOf(globalPause));
+        editDetectionInterval.setText(String.valueOf(detectionInterval));
 
         int spinnerPosition = detectionMode.equals("Frames") ? 1 : 0;
         spinnerDetectionMode.setSelection(spinnerPosition);
     }
-
-    private void setupListeners() {
-        seekBarObjectCooldown.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                textViewObjectCooldownValue.setText(progress + " ms");
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        seekBarGlobalPause.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                textViewGlobalPauseValue.setText(progress + " ms");
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-
-        seekBarDetectionInterval.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                String mode = spinnerDetectionMode.getSelectedItem().toString();
-                textViewDetectionIntervalValue.setText(mode.equals("Frames")
-                        ? progress + " frames"
-                        : progress + " seconds");
-            }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
-    }
-
     private void savePreferences() {
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putInt("object_sound_cooldown_ms", seekBarObjectCooldown.getProgress());
-        editor.putInt("global_sound_pause_ms", seekBarGlobalPause.getProgress());
-        editor.putInt("detection_interval_value", seekBarDetectionInterval.getProgress());
-        editor.putString("detection_interval_mode", spinnerDetectionMode.getSelectedItem().toString());
-        editor.apply();
-        finish();
+        try {
+            int objectCooldown = Integer.parseInt(editObjectCooldown.getText().toString());
+            int globalPause = Integer.parseInt(editGlobalPause.getText().toString());
+            int detectionInterval = Integer.parseInt(editDetectionInterval.getText().toString());
+            String detectionMode = spinnerDetectionMode.getSelectedItem().toString();
+
+            SharedPreferences.Editor editor = preferences.edit();
+            editor.putInt("object_sound_cooldown_ms", objectCooldown);
+            editor.putInt("global_sound_pause_ms", globalPause);
+            editor.putInt("detection_interval_value", detectionInterval);
+            editor.putString("detection_interval_mode", detectionMode);
+            editor.apply();
+
+            Toast.makeText(this, "Налаштування збережено", Toast.LENGTH_SHORT).show();
+            finish();
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Некоректне значення", Toast.LENGTH_SHORT).show();
+        }
     }
 }
+

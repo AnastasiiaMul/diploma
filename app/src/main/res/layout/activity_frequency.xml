@@ -24,23 +24,16 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Затримка звуків об'єктів (ms)"
+            android:text="Пауза між програванням звуку об'єкта, що вже був виявлений (мс)"
             android:textSize="24sp" />
 
-        <SeekBar
-            android:id="@+id/seekBarObjectCooldown"
+        <EditText
+            android:id="@+id/editObjectCooldown"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="5000" />
-
-        <TextView
-            android:id="@+id/textViewObjectCooldownValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="2000 ms"
+            android:inputType="number"
             android:textSize="24sp"
-            android:gravity="center_horizontal"
-            android:paddingBottom="16dp" />
+            android:layout_marginBottom="16dp" />
 
         <!-- Global Sound Pause -->
         <TextView
@@ -49,20 +42,13 @@
             android:text="Загальна пауза між звуками (ms)"
             android:textSize="24sp" />
 
-        <SeekBar
-            android:id="@+id/seekBarGlobalPause"
+        <EditText
+            android:id="@+id/editGlobalPause"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="2000" />
-
-        <TextView
-            android:id="@+id/textViewGlobalPauseValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="500 ms"
+            android:inputType="number"
             android:textSize="24sp"
-            android:gravity="center_horizontal"
-            android:paddingBottom="16dp" />
+            android:layout_marginBottom="16dp" />
 
         <!-- Detection Interval -->
         <TextView
@@ -77,21 +63,13 @@
             android:layout_height="wrap_content"
             android:paddingBottom="8dp" />
 
-        <SeekBar
-            android:id="@+id/seekBarDetectionInterval"
+        <EditText
+            android:id="@+id/editDetectionInterval"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="30"
-            android:textSize="24sp"/>
-
-        <TextView
-            android:id="@+id/textViewDetectionIntervalValue"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="10 seconds"
-            android:gravity="center_horizontal"
-            android:paddingBottom="24dp"
-            android:textSize="24sp"/>
+            android:inputType="number"
+            android:textSize="24sp"
+            android:layout_marginBottom="24dp" />
 
         <!-- Save Button -->
         <Button
