@@ -101,6 +101,16 @@
             android:textSize="24sp"
             android:layout_marginBottom="24dp" />
 
+        <TextView
+            android:id="@+id/stepSizeInfoTextView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Крок відстані: –"
+            android:textSize="18sp"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="24dp" />
+
+
         <Button
             android:id="@+id/saveDistanceSettingsButton"
             android:layout_width="match_parent"

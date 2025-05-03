@@ -3,16 +3,22 @@ package com.example.diplomaappmodeltflite;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.text.TextWatcher;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.Locale;
 
 public class DistanceSettingsActivity extends AppCompatActivity {
 
     private EditText minDistanceInput, maxDistanceInput, minVolumeInput, maxVolumeInput, numGradationsInput;
     private Button saveButton, backButton;
+    private TextView stepSizeInfoTextView;
+
 
     private static final String PREFS_NAME = "distance_settings";
 
@@ -27,6 +33,10 @@ public class DistanceSettingsActivity extends AppCompatActivity {
         maxVolumeInput = findViewById(R.id.maxVolumeInput);
         numGradationsInput = findViewById(R.id.gradationsInput);
 
+        stepSizeInfoTextView = findViewById(R.id.stepSizeInfoTextView);
+        updateStepSizeText();  // calculate and show initial step size
+
+
         saveButton = findViewById(R.id.saveDistanceSettingsButton);
         backButton = findViewById(R.id.backButton);
 
@@ -38,6 +48,18 @@ public class DistanceSettingsActivity extends AppCompatActivity {
         minVolumeInput.setText(String.valueOf(prefs.getFloat("minVolume", 0f)));
         maxVolumeInput.setText(String.valueOf(prefs.getFloat("maxVolume", 1f)));
         numGradationsInput.setText(String.valueOf(prefs.getInt("numGradations", 5)));
+
+        TextWatcher watcher = new DistanceTextWatcher() {
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                updateStepSizeText();
+            }
+        };
+
+        minDistanceInput.addTextChangedListener(watcher);
+        maxDistanceInput.addTextChangedListener(watcher);
+        numGradationsInput.addTextChangedListener(watcher);
+
 
         saveButton.setOnClickListener(v -> {
             try {
@@ -66,9 +88,6 @@ public class DistanceSettingsActivity extends AppCompatActivity {
         backButton.setOnClickListener(v -> finish());
     }
 
-    /**
-     * Public static method to compute volume based on distance and saved preferences.
-     */
     public static float getVolumeForDistance(Context context, float distance) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
@@ -92,4 +111,31 @@ public class DistanceSettingsActivity extends AppCompatActivity {
 
         return Math.max(minVolume, Math.min(adjustedVolume, maxVolume));
     }
+
+    private void updateStepSizeText() {
+        try {
+            float minDistance = Float.parseFloat(minDistanceInput.getText().toString());
+            float maxDistance = Float.parseFloat(maxDistanceInput.getText().toString());
+            int gradations = Integer.parseInt(numGradationsInput.getText().toString());
+
+            if (gradations > 0 && maxDistance > minDistance) {
+                float stepSize = (maxDistance - minDistance) / gradations;
+                stepSizeInfoTextView.setText(String.format(Locale.getDefault(),
+                        "Крок відстані: %.2f м", stepSize));
+            } else {
+                stepSizeInfoTextView.setText("Крок відстані: –");
+            }
+        } catch (NumberFormatException e) {
+            stepSizeInfoTextView.setText("Крок відстані: –");
+        }
+    }
+    private static abstract class DistanceTextWatcher implements android.text.TextWatcher {
+        @Override
+        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+        @Override
+        public void afterTextChanged(android.text.Editable s) {}
+    }
+
+
 }
