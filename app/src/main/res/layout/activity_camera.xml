@@ -52,6 +52,13 @@
             android:layout_gravity="start|top"/>
     </FrameLayout>
 
+    <TextView
+        android:id="@+id/azimuthTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:textSize="24sp" />
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"

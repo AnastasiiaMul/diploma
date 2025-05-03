@@ -9,11 +9,15 @@ import android.media.MediaPlayer;
 import android.widget.Toast;
 
 public class CompassManager implements SensorEventListener {
+    public interface CompassListener {
+        void onAzimuthChanged(float azimuth);
+    }
 
     private final SensorManager sensorManager;
     private final Sensor accelerometer;
     private final Sensor magnetometer;
     private final Context context;
+    private CompassListener listener;
 
     private float[] gravity;
     private float[] geomagnetic;
@@ -23,6 +27,10 @@ public class CompassManager implements SensorEventListener {
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+    }
+
+    public void setCompassListener(CompassListener listener) {
+        this.listener = listener;
     }
 
     public void startListening() {
@@ -44,6 +52,7 @@ public class CompassManager implements SensorEventListener {
         if (gravity != null && geomagnetic != null) {
             float[] R = new float[9];
             float[] I = new float[9];
+
             boolean success = SensorManager.getRotationMatrix(R, I, gravity, geomagnetic);
             if (success) {
                 float[] orientation = new float[3];
@@ -52,8 +61,12 @@ public class CompassManager implements SensorEventListener {
 
                 if (azimuth < 0) azimuth += 360;
 
+                if (listener != null) {
+                    listener.onAzimuthChanged(azimuth);
+                }
+
                 String direction = getCompassDirection(azimuth);
-                Toast.makeText(context, direction, Toast.LENGTH_SHORT).show();
+                //Toast.makeText(context, direction, Toast.LENGTH_SHORT).show();
                 playCompassSound(direction);
                 stopListening();
             }

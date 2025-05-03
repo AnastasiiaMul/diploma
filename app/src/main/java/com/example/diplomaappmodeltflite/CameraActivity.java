@@ -88,6 +88,7 @@ public class CameraActivity extends AppCompatActivity {
     private ObjectDetectorHelper objectDetectorHelper;
     private DetectionProcessor detectionProcessor;
     private SessionLogger sessionLogger;
+    private CompassManager compassManager;
 
     private long lastFrameTime = 0;
     private int frameCounter = 0;
@@ -97,7 +98,7 @@ public class CameraActivity extends AppCompatActivity {
     // data to approximate the distance
     // Constants for object heights (in meters)
 
-    private TextView navigationInfoTextView;
+    private TextView navigationInfoTextView, azimuthTextView;
     private FusedLocationProviderClient fusedLocationClient;
     private Geocoder geocoder;
 
@@ -105,6 +106,10 @@ public class CameraActivity extends AppCompatActivity {
     private double destLat, destLng;
     private String startLocationName, endLocationName;
     private boolean navigationStarted = false;
+
+    private float currentAzimuth = 0f;
+    private float targetBearing = 0f;
+
 
 
     @Override
@@ -122,12 +127,22 @@ public class CameraActivity extends AppCompatActivity {
         overlayView.setPreviewSize(displayMetrics.widthPixels, displayMetrics.heightPixels);*/
 
         navigationInfoTextView = findViewById(R.id.navigationInfoTextView);
+        azimuthTextView = findViewById(R.id.azimuthTextView);
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         geocoder = new Geocoder(this, Locale.getDefault());
         // Fetch and show location
         loadTravelSession();
         requestCurrentLocation();
+
+        compassManager = new CompassManager(this);
+        compassManager.setCompassListener(azimuth -> {
+            currentAzimuth = azimuth;
+            updateAzimuthDisplay();
+        });
+
+        compassManager.startListening();
+
 
 
         fpsTextView = findViewById(R.id.fpsTextView);
@@ -305,10 +320,25 @@ public class CameraActivity extends AppCompatActivity {
 
         fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
             if (location != null) {
+                if (navigationStarted) {
+                    Location dest = new Location("");
+                    dest.setLatitude(destLat);
+                    dest.setLongitude(destLng);
+                    targetBearing = location.bearingTo(dest);
+                    if (targetBearing < 0) targetBearing += 360;
+                }
                 updateFullNavigationInfo(location);
+                updateAzimuthDisplay();
             }
         });
     }
+    private void updateAzimuthDisplay() {
+        runOnUiThread(() -> {
+            String text = String.format(Locale.US, "Кут руху: %.1f° | Цільовий кут: %.1f°", currentAzimuth, targetBearing);
+            azimuthTextView.setText(text);
+        });
+    }
+
 
 
 
