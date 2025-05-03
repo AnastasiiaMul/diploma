@@ -1,6 +1,7 @@
 package com.example.diplomaappmodeltflite;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -21,6 +22,9 @@ public class SectorsSoundSettingsActivity extends AppCompatActivity {
 
     private MediaPlayer mediaPlayer;
 
+    private static final int PICK_AUDIO_REQUEST = 2001;
+    private TextView selectedSoundLabel;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,6 +33,7 @@ public class SectorsSoundSettingsActivity extends AppCompatActivity {
         // Get the sector ID from intent
         sectorId = getIntent().getIntExtra("sectorId", 1);
 
+        Button selectFromPhoneBtn = findViewById(R.id.selectFromPhoneButton);
         LinearLayout soundListLayout = findViewById(R.id.soundListLayout);
 
         // Load current selected sound for this sector
@@ -50,12 +55,36 @@ public class SectorsSoundSettingsActivity extends AppCompatActivity {
                 playSoundAndAskConfirmation(this, soundSystemName, soundUIName);
             });
 
+            // Display current sound
+            updateSoundLabel();
+
+            selectFromPhoneBtn.setOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("audio/*");
+                startActivityForResult(Intent.createChooser(intent, "Select Sound"), PICK_AUDIO_REQUEST);
+            });
+
             soundListLayout.addView(soundButton);
         }
 
         // Back button
         Button backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> finish());
+    }
+
+    private void updateSoundLabel() {
+        String currentSound = SectorSoundManager.getSoundForSector(this, sectorId);
+        selectedSoundLabel.setText("Обраний звук: " + (currentSound != null ? currentSound : "немає"));
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PICK_AUDIO_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            String uriString = data.getData().toString();
+            SectorSoundManager.setSoundForSector(this, sectorId, uriString);
+            updateSoundLabel();
+        }
     }
 
     private void playSoundAndAskConfirmation(Context context, String systemSoundName, String uiSoundName) {

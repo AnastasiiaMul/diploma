@@ -1,8 +1,10 @@
 package com.example.diplomaappmodeltflite;
 
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
 import android.widget.LinearLayout;
@@ -12,9 +14,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class ObjectsSoundsSettingsActivity extends AppCompatActivity {
 
-    private String[] availableSounds = {"car", "person", "bicycle", "bench"};
+    private String[] availableSounds = {"car", "person", "bicycle", "bench", "crosswalk", "Dog", "Tree", "mans hole", "Bush", "Bus stop"};
+    private String[] availableSoundsUI = {"Звук 1", "Звук 2", "Звук 3", "Звук 4", "Звук 5", "Звук 6", "Звук 7", "Звук 8", "Звук 9", "Звук 10"};
     private MediaPlayer mediaPlayer;
     private String objectType;
+    private static final int REQUEST_CODE_SELECT_AUDIO = 101;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,9 +50,35 @@ public class ObjectsSoundsSettingsActivity extends AppCompatActivity {
             layout.addView(soundButton);
         }
 
+        Button selectFromPhoneButton = findViewById(R.id.selectFromPhoneButton);
+        selectFromPhoneButton.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            intent.setType("audio/*");
+            startActivityForResult(Intent.createChooser(intent, "Обрати аудіофайл"), REQUEST_CODE_SELECT_AUDIO);
+        });
+
         Button backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> finish());
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_CODE_SELECT_AUDIO && resultCode == RESULT_OK && data != null) {
+            String uriString = data.getData().toString();
+
+            // Save to preferences
+            ObjectSoundPreferences.saveSoundForObject(this, objectType, uriString);
+
+            new AlertDialog.Builder(this)
+                    .setTitle("Готово")
+                    .setMessage("Обрано користувацький звук:\n" + uriString)
+                    .setPositiveButton("ОК", (d, w) -> finish())
+                    .show();
+        }
+    }
+
 
     private void playSoundAndAskConfirmation(Context context, String soundName) {
         if (mediaPlayer != null) {
@@ -68,6 +98,22 @@ public class ObjectsSoundsSettingsActivity extends AppCompatActivity {
             // If sound not found, immediately show confirmation
             showConfirmationDialog(soundName);
         }
+        if (soundName.startsWith("content://") || soundName.startsWith("file://")) {
+            try {
+                mediaPlayer = MediaPlayer.create(context, Uri.parse(soundName));
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    mp.release();
+                    mediaPlayer = null;
+                    showConfirmationDialog(soundName);
+                });
+                mediaPlayer.start();
+            } catch (Exception e) {
+                e.printStackTrace();
+                showConfirmationDialog(soundName); // fallback
+            }
+            return;
+        }
+
     }
 
     private void showConfirmationDialog(String soundName) {

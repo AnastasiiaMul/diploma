@@ -12,4 +12,13 @@
         android:text="Назад"
         android:textSize="24sp"
         android:layout_marginTop="8dp" />
+
+    <Button
+        android:id="@+id/selectFromPhoneButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Обрати з памʼяті телефону"
+        android:textSize="24sp"
+        android:layout_marginTop="16dp"/>
+
 </LinearLayout>
