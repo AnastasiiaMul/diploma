@@ -110,6 +110,7 @@ public class CameraActivity extends AppCompatActivity {
     private float currentAzimuth = 0f;
     private float targetBearing = 0f;
 
+    private long lastCompassUpdate = 0;
 
 
     @Override
@@ -135,15 +136,20 @@ public class CameraActivity extends AppCompatActivity {
         loadTravelSession();
         requestCurrentLocation();
 
+        SharedPreferences prefs = getSharedPreferences("FrequencyPrefs", MODE_PRIVATE);
+        int compassUpdateInterval = prefs.getInt("compass_update_interval_ms", 1000);
+
         compassManager = new CompassManager(this);
         compassManager.setCompassListener(azimuth -> {
-            currentAzimuth = azimuth;
-            updateAzimuthDisplay();
+            long now = System.currentTimeMillis();
+            if (now - lastCompassUpdate >= compassUpdateInterval) {
+                currentAzimuth = azimuth;
+                updateAzimuthDisplay();
+                lastCompassUpdate = now;
+            }
         });
 
         compassManager.startListening();
-
-
 
         fpsTextView = findViewById(R.id.fpsTextView);
 
@@ -152,12 +158,6 @@ public class CameraActivity extends AppCompatActivity {
         inferenceExecutor = Executors.newSingleThreadExecutor();
 
         previewView.setOnClickListener(v -> startActivity(new Intent(this, CameraOnlyActivity.class)));
-
-        /*View mapClickOverlay = findViewById(R.id.mapClickOverlay);
-        mapClickOverlay.setOnClickListener(v -> {
-            Intent intent = new Intent(CameraActivity.this, MapOnlyActivity.class);
-            startActivity(intent);
-        });*/
 
         objectDetectorHelper = new ObjectDetectorHelper(this);
 

@@ -19,6 +19,7 @@ public class FrequencyActivity extends AppCompatActivity {
     private Button buttonSave, buttonBack;
 
     private SharedPreferences preferences;
+    private EditText editCompassUpdateTime;
 
     private static final String PREFS_NAME = "FrequencyPrefs";
 
@@ -30,6 +31,7 @@ public class FrequencyActivity extends AppCompatActivity {
         editObjectCooldown = findViewById(R.id.editObjectCooldown);
         editGlobalPause = findViewById(R.id.editGlobalPause);
         editDetectionInterval = findViewById(R.id.editDetectionInterval);
+        editCompassUpdateTime = findViewById(R.id.editCompassUpdateTime);
 
         spinnerDetectionMode = findViewById(R.id.spinnerDetectionMode);
         buttonSave = findViewById(R.id.buttonSaveFrequency);
@@ -54,12 +56,16 @@ public class FrequencyActivity extends AppCompatActivity {
     private void loadPreferences() {
         int objectCooldown = preferences.getInt("object_sound_cooldown_ms", 2000);
         int globalPause = preferences.getInt("global_sound_pause_ms", 500);
-        int detectionInterval = preferences.getInt("detection_interval_value", 10);
+        int detectionInterval = preferences.getInt("detection_interval_value", 5);
+        int compassUpdate = preferences.getInt("compass_update_interval_ms", 3000);
+
         String detectionMode = preferences.getString("detection_interval_mode", "Seconds");
 
         editObjectCooldown.setText(String.valueOf(objectCooldown));
         editGlobalPause.setText(String.valueOf(globalPause));
         editDetectionInterval.setText(String.valueOf(detectionInterval));
+        editCompassUpdateTime.setText(String.valueOf(compassUpdate));
+
 
         int spinnerPosition = detectionMode.equals("Frames") ? 1 : 0;
         spinnerDetectionMode.setSelection(spinnerPosition);
@@ -69,6 +75,7 @@ public class FrequencyActivity extends AppCompatActivity {
             int objectCooldown = Integer.parseInt(editObjectCooldown.getText().toString());
             int globalPause = Integer.parseInt(editGlobalPause.getText().toString());
             int detectionInterval = Integer.parseInt(editDetectionInterval.getText().toString());
+            int compassUpdate = Integer.parseInt(editCompassUpdateTime.getText().toString());
             String detectionMode = spinnerDetectionMode.getSelectedItem().toString();
 
             SharedPreferences.Editor editor = preferences.edit();
@@ -76,6 +83,7 @@ public class FrequencyActivity extends AppCompatActivity {
             editor.putInt("global_sound_pause_ms", globalPause);
             editor.putInt("detection_interval_value", detectionInterval);
             editor.putString("detection_interval_mode", detectionMode);
+            editor.putInt("compass_update_interval_ms", compassUpdate);
             editor.apply();
 
             Toast.makeText(this, "Налаштування збережено", Toast.LENGTH_SHORT).show();
