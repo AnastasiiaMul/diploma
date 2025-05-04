@@ -68,7 +68,7 @@ public class CompassManager implements SensorEventListener {
                 String direction = getCompassDirection(azimuth);
                 //Toast.makeText(context, direction, Toast.LENGTH_SHORT).show();
                 //playCompassSound(direction);
-                stopListening();
+                // stopListening();
             }
         }
     }

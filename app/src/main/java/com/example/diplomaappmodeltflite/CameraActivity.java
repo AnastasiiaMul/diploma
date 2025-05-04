@@ -350,7 +350,7 @@ public class CameraActivity extends AppCompatActivity {
     }
     private void updateAzimuthDisplay() {
         runOnUiThread(() -> {
-            String text = String.format(Locale.US, "Кут руху: %.1f° | Цільовий кут: %.1f°", currentAzimuth, targetBearing);
+            String text = String.format(Locale.US, "Кут руху: %.1f°\nЦільовий кут: %.1f°", currentAzimuth, targetBearing);
             azimuthTextView.setText(text);
         });
     }
@@ -409,6 +409,10 @@ public class CameraActivity extends AppCompatActivity {
 
         rebindCameraIfNeeded();
         loadTravelSession();
+
+        if (compassManager != null) {
+            compassManager.startListening();
+        }
     }
 
     @Override
@@ -417,6 +421,10 @@ public class CameraActivity extends AppCompatActivity {
         if (objectDetectorHelper != null) {
             objectDetectorHelper.close();
             objectDetectorHelper = null;
+        }
+
+        if (compassManager != null) {
+            compassManager.stopListening();
         }
     }
 }
