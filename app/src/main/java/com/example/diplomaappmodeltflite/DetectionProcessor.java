@@ -4,7 +4,9 @@ package com.example.diplomaappmodeltflite;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.media.MediaPlayer;
 import android.media.SoundPool;
+import android.net.Uri;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -14,9 +16,11 @@ import org.tensorflow.lite.Interpreter;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 public class DetectionProcessor {
 
@@ -34,7 +38,7 @@ public class DetectionProcessor {
     private static final float NMS_THRESHOLD = 0.5f;
     private static final float FOCAL_LENGTH = 500f;
     private boolean isClosed = false;
-
+    private MediaPlayer mediaPlayer;
     // New for frequency management
     private final Map<Integer, Long> lastPlayedTimePerObject = new HashMap<>();
     private long lastGlobalSoundTime = 0L;
@@ -44,6 +48,7 @@ public class DetectionProcessor {
     private int detectionIntervalValue = 10;   // Default 10 seconds or frames
     private long lastDetectionTimestamp = 0;
     private int frameCounter = 0;
+    private final Set<Integer> loadedSoundIds = new HashSet<>();
 
 
     private static final Map<Integer, Float> OBJECT_HEIGHTS = new HashMap<Integer, Float>() {{
@@ -75,6 +80,9 @@ public class DetectionProcessor {
         detectionIntervalValue = prefs.getInt("detection_interval_value", 10);
         detectionIntervalMode = prefs.getString("detection_interval_mode", "Seconds");
 
+        soundPool.setOnLoadCompleteListener((pool, sampleId, status) -> {
+            if (status == 0) loadedSoundIds.add(sampleId);
+        });
     }
 
     public void close() {
@@ -82,6 +90,10 @@ public class DetectionProcessor {
         if (interpreter != null) {
             interpreter.close();
             Log.d("DetectionProcessor", "Interpreter closed.");
+        }
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
         }
     }
 
@@ -150,24 +162,73 @@ public class DetectionProcessor {
 
             if (canPlayGlobal && canPlayObject) {
                 // Sector sound
-                Integer sectorSoundId = sectorSoundMap.get(sectorId);
-                if (sectorSoundId != null) {
+                String sectorSoundName = SectorSoundManager.getSoundForSector(context, sectorId);
+                if (sectorSoundName != null && !sectorSoundName.isEmpty()) {
                     float quietVolume = 0.05f;
-                    soundPool.play(sectorSoundId, quietVolume, quietVolume, 1, 0, 1.0f);
-                    Log.d("SOUND", "Played sector sound for sector " + sectorId);
+                    if (sectorSoundName.startsWith("content://") || sectorSoundName.startsWith("file://")) {
+                        try {
+                            if (mediaPlayer != null) {
+                                mediaPlayer.release();
+                            }
+                            mediaPlayer = MediaPlayer.create(context, Uri.parse(sectorSoundName));
+                            mediaPlayer.setOnCompletionListener(mp -> {
+                                mp.release();
+                                mediaPlayer = null;
+                            });
+                            mediaPlayer.setVolume(quietVolume, quietVolume);
+                            mediaPlayer.start();
+                        } catch (Exception e) {
+                            Log.e("SOUND", "Failed to play URI sector sound", e);
+                        }
+                    } else {
+                        Integer sectorSoundId = sectorSoundMap.get(sectorId);
+                        if (sectorSoundId != null) {
+                            soundPool.play(sectorSoundId, quietVolume, quietVolume, 1, 0, 1.0f);
+                            Log.d("SOUND", "Played preloaded system sound for sector " + sectorId);
+                        }
+                    }
                 }
 
                 // Object sound
                 String objectName = CocoLabels.getLabel(det.detectedClass);
                 String objectSound = ObjectSoundPreferences.getSoundForObject(context, objectName);
-
                 if (objectSound != null && !objectSound.isEmpty()) {
-                    int resId = context.getResources().getIdentifier(objectSound.toLowerCase(), "raw", context.getPackageName());
-                    if (resId != 0) {
-                        int objectSoundId = soundPool.load(context, resId, 1);
-                        float volume = DistanceSettingsActivity.getVolumeForDistance(context, distance);
-                        soundPool.play(objectSoundId, volume, volume, 1, 0, 1.0f);
-                        Log.d("SOUND", String.format(Locale.US, "Played sound for %s | Distance %.2f m | Volume %.2f", objectName, distance, volume));
+                    float volume = DistanceSettingsActivity.getVolumeForDistance(context, distance);
+                    if (objectSound.startsWith("content://") || objectSound.startsWith("file://")) {
+                        try {
+                            if (mediaPlayer != null) mediaPlayer.release();
+                            Uri uri = Uri.parse(sectorSoundName);
+                            try {
+                                if (mediaPlayer != null) {
+                                    mediaPlayer.release();
+                                }
+                                mediaPlayer = MediaPlayer.create(context, Uri.parse(sectorSoundName));
+                                if (mediaPlayer != null) {
+                                    mediaPlayer.setVolume(0, 1);
+                                    mediaPlayer.setOnCompletionListener(mp -> {
+                                        mp.release();
+                                        mediaPlayer = null;
+                                    });
+                                    mediaPlayer.start();
+                                } else {
+                                    Log.e("SOUND", "MediaPlayer is null for URI: " + sectorSoundName);
+                                }
+
+                            } catch (Exception e) {
+                                Log.e("SOUND", "Failed to play URI sector sound: " + uri, e);
+                            }
+
+                            mediaPlayer.setVolume(volume, volume);
+                            mediaPlayer.start();
+                        } catch (Exception e) {
+                            Log.e("SOUND", "Failed to play object URI sound", e);
+                        }
+                    } else {
+                        int resId = context.getResources().getIdentifier(objectSound.toLowerCase(), "raw", context.getPackageName());
+                        if (resId != 0) {
+                            int objectSoundId = soundPool.load(context, resId, 1);
+                            soundPool.play(objectSoundId, volume, volume, 1, 0, 1.0f);
+                        }
                     }
                 }
 

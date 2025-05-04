@@ -84,7 +84,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private SoundPool soundPool;
     private final Map<Integer, Integer> sectorSoundMap = new HashMap<>();
-
+    private final Map<Integer, Boolean> loadedSoundFlags = new HashMap<>();
     private ObjectDetectorHelper objectDetectorHelper;
     private DetectionProcessor detectionProcessor;
     private SessionLogger sessionLogger;
@@ -169,17 +169,33 @@ public class CameraActivity extends AppCompatActivity {
                         .build())
                 .build();
 
+        soundPool.setOnLoadCompleteListener((soundPool1, sampleId, status) -> {
+            if (status == 0) { // 0 means success
+                for (Map.Entry<Integer, Integer> entry : sectorSoundMap.entrySet()) {
+                    if (entry.getValue() == sampleId) {
+                        loadedSoundFlags.put(entry.getKey(), true);
+                        Log.d("SoundPool", "Loaded sector sound for sector " + entry.getKey());
+                        break;
+                    }
+                }
+            } else {
+                Log.e("SoundPool", "Failed to load sound ID " + sampleId);
+            }
+        });
+
         int sectorCount = SectorSoundManager.getNumberOfSectors(this);
         for (int sectorId = 1; sectorId <= sectorCount; sectorId++) {
             String soundName = SectorSoundManager.getSoundForSector(this, sectorId);
-            if (!soundName.isEmpty()) {
+            if (!soundName.isEmpty() && !soundName.startsWith("content://") && !soundName.startsWith("file://")) {
                 int resId = getResources().getIdentifier(soundName, "raw", getPackageName());
                 if (resId != 0) {
                     int soundId = soundPool.load(this, resId, 1);
                     sectorSoundMap.put(sectorId, soundId);
+                    loadedSoundFlags.put(sectorId, false); // not ready yet
                 }
             }
         }
+
 
         detectionProcessor = new DetectionProcessor(this, objectDetectorHelper, overlayView,
                 detectionResultsTextView, soundPool, sectorSoundMap, sessionLogger);

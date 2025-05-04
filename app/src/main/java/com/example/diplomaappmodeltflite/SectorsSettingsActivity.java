@@ -1,7 +1,10 @@
 package com.example.diplomaappmodeltflite;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -89,7 +92,27 @@ public class SectorsSettingsActivity extends AppCompatActivity {
 
     private String getUiNameForSound(String systemSoundName) {
         if (systemSoundName == null) return null;
-        return soundUIMap.getOrDefault(systemSoundName, null);
+
+        if (soundUIMap.containsKey(systemSoundName)) {
+            return soundUIMap.get(systemSoundName);
+        }
+
+        if ((systemSoundName.startsWith("content://") || systemSoundName.startsWith("file://"))) {
+            Uri uri = Uri.parse(systemSoundName);
+            try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (nameIndex != -1) {
+                        return cursor.getString(nameIndex);
+                    }
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return "Користувацький звук";
+        }
+
+        return systemSoundName; // fallback
     }
 
     @Override

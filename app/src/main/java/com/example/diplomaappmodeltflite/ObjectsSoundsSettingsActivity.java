@@ -2,10 +2,12 @@ package com.example.diplomaappmodeltflite;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
@@ -117,18 +119,37 @@ public class ObjectsSoundsSettingsActivity extends AppCompatActivity {
     }
 
     private void showConfirmationDialog(String soundName) {
+        String label;
+        if (soundName.startsWith("content://") || soundName.startsWith("file://")) {
+            label = getFileNameFromUri(Uri.parse(soundName));
+        } else {
+            label = soundName;
+        }
+
         new AlertDialog.Builder(this)
                 .setTitle("Підтвердити звук")
-                .setMessage("Обрати \"" + soundName + "\" як звук?")
+                .setMessage("Обрати \"" + label + "\" як звук?")
                 .setPositiveButton("Так", (dialog, which) -> {
                     ObjectSoundPreferences.saveSoundForObject(this, objectType, soundName);
                     finish();
                 })
-                .setNegativeButton("Ні", (dialog, which) -> {
-                    // Do nothing, stay on the screen
-                    dialog.dismiss();
-                })
+                .setNegativeButton("Ні", (dialog, which) -> dialog.dismiss())
                 .show();
+    }
+
+    private String getFileNameFromUri(Uri uri) {
+        String result = "Користувацький звук";
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex >= 0) {
+                    result = cursor.getString(nameIndex);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 
     @Override

@@ -1,7 +1,10 @@
 package com.example.diplomaappmodeltflite;
 
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.OpenableColumns;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -85,9 +88,31 @@ public class ObjectsSettingsActivity extends AppCompatActivity {
     private void updateSoundLabelText(String objectLabel, TextView label) {
         String sound = ObjectSoundPreferences.getSoundForObject(this, objectLabel);
         if (sound == null || sound.isEmpty()) {
-            sound = "Звук за замовчуванням";
+            label.setText("Обраний звук: Звук за замовчуванням");
+            return;
         }
-        label.setText("Обраний звук: " + sound);
+
+        if (sound.startsWith("content://") || sound.startsWith("file://")) {
+            String fileName = getFileNameFromUri(Uri.parse(sound));
+            label.setText("Обраний звук: " + fileName);
+        } else {
+            label.setText("Обраний звук: " + sound);
+        }
+    }
+
+    private String getFileNameFromUri(Uri uri) {
+        String result = "Користувацький звук";
+        try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (nameIndex >= 0) {
+                    result = cursor.getString(nameIndex);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result;
     }
 }
 
