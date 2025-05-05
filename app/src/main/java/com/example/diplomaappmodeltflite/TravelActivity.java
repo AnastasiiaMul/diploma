@@ -7,6 +7,7 @@ import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
@@ -44,38 +45,33 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
     private static final String TAG = "TravelActivity";
 
     private static final int LOCATION_PERMISSION_REQUEST = 1001;
-    Location currentLocation;
-    private GoogleMap Map;
-
-    private FusedLocationProviderClient fusedLocationClient;
+    private GoogleMap map;
+    private Location currentLocation;
     private double currentLat, currentLng;
     private String startLocationName, endLocationName;
-    private long startTimeMillis;
     private double destLat, destLng;
-    private TextView currentLocationTextView;
-    private Button startTravelButton;
-    private Button btnBack;
     private boolean destinationSelected = false;
+
+    private FusedLocationProviderClient fusedLocationClient;
     private Geocoder geocoder;
+
+    private TextView currentLocationTextView;
+    private Button startTravelButton, btnBack;
     private SupportMapFragment mapFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_travel);
-        Log.d(TAG, "onCreate: TravelActivity started");
 
         geocoder = new Geocoder(this, Locale.getDefault());
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
 
         btnBack = findViewById(R.id.btnBack);
-
         currentLocationTextView = findViewById(R.id.currentLocationTextView);
         startTravelButton = findViewById(R.id.startTravelButton);
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-
-
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         // Initialize Places SDK
         if (!Places.isInitialized()) {
@@ -90,19 +86,15 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
         }
 
         requestLocation();
-
         setupAutocomplete();
 
         startTravelButton.setOnClickListener(v -> {
             if (!destinationSelected) {
-                Toast.makeText(this, "Please select a destination.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Будь ласка, оберіть місце призначення.", Toast.LENGTH_SHORT).show();
                 Log.w(TAG, "Start button pressed without destination selected");
                 return;
             }
             Log.d(TAG, "Saving travel data and starting MapOnlyActivity");
-
-            // Save data into SharedPreferences
-            saveTravelSession(currentLat, currentLng, startLocationName, destLat, destLng, endLocationName);
 
             NavigationSessionManager.getInstance().startNavigation(TravelActivity.this, new NavigationApi.NavigatorListener() {
                 @Override
@@ -117,14 +109,12 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                         Log.d(TAG, "set destination" + destLng + " " + destLat);
 
                         navigator.setAudioGuidance(Navigator.AudioGuidance.VOICE_ALERTS_AND_GUIDANCE);
-
                         navigator.setDestination(destination, new RoutingOptions())
                                 .setOnResultListener(routeStatus -> {
                                     if (routeStatus == Navigator.RouteStatus.OK) {
                                         Log.d(TAG, "Route calculated successfully, starting guidance...");
                                         navigator.startGuidance();
 
-                                        // Now open the MapOnlyActivity
                                         Intent intent = new Intent(TravelActivity.this, MapOnlyActivity.class);
                                         intent.putExtra("originLat", currentLat);
                                         intent.putExtra("originLng", currentLng);
@@ -136,40 +126,26 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                                         startActivity(intent);
                                     } else {
                                         Log.e(TAG, "Failed to calculate route: " + routeStatus);
-                                        Toast.makeText(TravelActivity.this, "Failed to calculate route.", Toast.LENGTH_SHORT).show();
+                                        Toast.makeText(TravelActivity.this, "Не вдалося розрахувати маршрут.", Toast.LENGTH_SHORT).show();
                                     }
                                 });
 
                     } catch (Exception e) {
                         Log.e(TAG, "Exception while setting destination", e);
-                        Toast.makeText(TravelActivity.this, "Navigation setup failed.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(TravelActivity.this, "Помилка навігації.", Toast.LENGTH_SHORT).show();
                     }
                 }
 
                 @Override
                 public void onError(@NavigationApi.ErrorCode int errorCode) {
                     Log.e(TAG, "Failed to start navigator: " + errorCode);
-                    Toast.makeText(TravelActivity.this, "Failed to start navigation.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(TravelActivity.this, "Помилка запуску навігації.", Toast.LENGTH_SHORT).show();
                 }
             });
         });
 
         btnBack.setOnClickListener(v -> finish());
     }
-
-    private void saveTravelSession(double originLat, double originLng, String startName,
-                                   double destLat, double destLng, String endName) {
-        getSharedPreferences("TravelSession", MODE_PRIVATE)
-                .edit()
-                .putFloat("originLat", (float) originLat)
-                .putFloat("originLng", (float) originLng)
-                .putString("startLocationName", startName)
-                .putFloat("destLat", (float) destLat)
-                .putFloat("destLng", (float) destLng)
-                .putString("endLocationName", endName)
-                .apply();
-    }
-
 
     private void requestLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
@@ -181,57 +157,35 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
         }
         Log.d(TAG, "Location permissions granted, getting last known location");
 
-        Task<Location> task = fusedLocationClient.getLastLocation();
-        task.addOnSuccessListener(new OnSuccessListener<Location>() {
-            @Override
-            public void onSuccess(Location location) {
-                if (location != null){
-                    Log.d(TAG, "Location retrieved: " + location.getLatitude() + ", " + location.getLongitude());
+        fusedLocationClient.getLastLocation().addOnSuccessListener(location -> {
+            if (location != null) {
+                currentLocation = location;
+                currentLat = location.getLatitude();
+                currentLng = location.getLongitude();
+                if (mapFragment != null) mapFragment.getMapAsync(this);
 
-                    currentLocation = location;
-                    if (mapFragment != null) {
-                        mapFragment.getMapAsync(TravelActivity.this);
+                try {
+                    List<Address> addresses = geocoder.getFromLocation(currentLat, currentLng, 1);
+                    if (!addresses.isEmpty()) {
+                        Address address = addresses.get(0);
+                        startLocationName = address.getAddressLine(0);
+                        currentLocationTextView.setText(startLocationName);
                     }
-
-
-                    String result = null;
-                    try{
-                        List<Address> addresses =
-                                geocoder.getFromLocation(currentLocation.getLatitude(),
-                                        currentLocation.getLongitude(), 1);
-
-                        if (addresses != null && !addresses.isEmpty()) {
-                            Address address = addresses.get(0);
-                            // sending back first address line and locality
-                            result = address.getAddressLine(0); // + ", " + address.getLocality()
-                            currentLocationTextView.setText(result != null ? result : "Location not available");
-                            Log.d(TAG, "Address resolved: " + result);
-                        }
-
-                    } catch (IOException e) {
-                        Log.e("TravelActivity", "Address error: " + e);
-                    }
-                    currentLocationTextView.setText(result);
-                    startLocationName = result;
-
+                } catch (IOException e) {
+                    currentLocationTextView.setText("Невдалось визначити адресу");
                 }
             }
         });
     }
     @Override
     public void onMapReady(@NonNull GoogleMap googleMap){
+        map = googleMap;
 
-        // for testing purposes
-        googleMap.setOnCameraIdleListener(() -> {
-            Log.d("TravelActivity", "Map camera moved to: " + googleMap.getCameraPosition().target);
-        });
-
-        Log.d(TAG, "onMapReady called");
-        Map = googleMap;
-
-        LatLng center = new LatLng(currentLocation.getLatitude(), currentLocation.getLongitude());
-        Map.addMarker(new MarkerOptions().position(center).title("Поточна локація"));
-        Map.moveCamera(CameraUpdateFactory.newLatLngZoom(center, 20));
+        if (currentLocation != null) {
+            LatLng center = new LatLng(currentLat, currentLng);
+            map.addMarker(new MarkerOptions().position(center).title("Поточна локація"));
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(center, 17));
+        }
     }
 
     private void setupAutocomplete() {
@@ -240,7 +194,8 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                         .findFragmentById(R.id.autocompleteFragment);
 
         if (autocompleteFragment != null) {
-            autocompleteFragment.setPlaceFields(Arrays.asList(Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG));
+            autocompleteFragment.setPlaceFields(Arrays.asList(
+                    Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG, Place.Field.ADDRESS));
             autocompleteFragment.setHint("Місце призначення");
 
             autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
@@ -249,7 +204,11 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                     if (place.getLatLng() != null) {
                         destLat = place.getLatLng().latitude;
                         destLng = place.getLatLng().longitude;
-                        endLocationName = place.getFormattedAddress();
+                        if (place.getFormattedAddress() != null) {
+                            endLocationName = place.getFormattedAddress();
+                        } else {
+                            endLocationName = place.getName();
+                        }
                         destinationSelected = true;
                     }
                 }
@@ -257,7 +216,7 @@ public class TravelActivity extends AppCompatActivity implements OnMapReadyCallb
                 @Override
                 public void onError(@NonNull com.google.android.gms.common.api.Status status) {
                     Log.e("TravelActivity", "Autocomplete error: " + status.getStatusMessage());
-                    Toast.makeText(TravelActivity.this, "Error selecting place.", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(TravelActivity.this, "Помилка вибору місця", Toast.LENGTH_SHORT).show();
                 }
             });
         }
