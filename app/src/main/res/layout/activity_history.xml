@@ -20,6 +20,14 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp" />
 
+    <Button
+        android:id="@+id/btnToggleSort"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Сортувати: Найновіші спочатку"
+        android:textSize="18sp"
+        android:layout_marginBottom="12dp" />
+
     <ListView
         android:id="@+id/historyListView"
         android:layout_width="match_parent"
