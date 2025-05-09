@@ -118,6 +118,10 @@ public class CameraActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
 
+        SharedPreferences prefs = getSharedPreferences("FrequencyPrefs", MODE_PRIVATE);
+        int compassUpdateInterval = prefs.getInt("compass_update_interval_ms", 5000);
+        boolean updateOnPress = prefs.getBoolean("compass_update_on_press", false);
+
         previewView = findViewById(R.id.cameraPreview);
         overlayView = findViewById(R.id.overlayView);
         detectionResultsTextView = findViewById(R.id.detectionResultsTextView);
@@ -130,24 +134,31 @@ public class CameraActivity extends AppCompatActivity {
         navigationInfoTextView = findViewById(R.id.navigationInfoTextView);
         azimuthTextView = findViewById(R.id.azimuthTextView);
 
+        if (updateOnPress) {
+            azimuthTextView.setOnClickListener(v -> updateAzimuthDisplay());
+        } else {
+            azimuthTextView.setOnClickListener(null); // disable listener in case it was set before
+        }
+
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         geocoder = new Geocoder(this, Locale.getDefault());
         // Fetch and show location
         loadTravelSession();
         requestCurrentLocation();
 
-        SharedPreferences prefs = getSharedPreferences("FrequencyPrefs", MODE_PRIVATE);
-        int compassUpdateInterval = prefs.getInt("compass_update_interval_ms", 1000);
-
         compassManager = new CompassManager(this);
-        compassManager.setCompassListener(azimuth -> {
-            long now = System.currentTimeMillis();
-            if (now - lastCompassUpdate >= compassUpdateInterval) {
+        if(!updateOnPress)
+            compassManager.setCompassListener(azimuth -> {
                 currentAzimuth = azimuth;
-                updateAzimuthDisplay();
-                lastCompassUpdate = now;
-            }
-        });
+
+                if (!updateOnPress) {
+                    long now = System.currentTimeMillis();
+                    if (now - lastCompassUpdate >= compassUpdateInterval) {
+                        updateAzimuthDisplay();
+                        lastCompassUpdate = now;
+                    }
+                }
+            });
 
         compassManager.startListening();
 

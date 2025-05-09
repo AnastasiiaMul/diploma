@@ -71,13 +71,27 @@
             android:textSize="24sp"
             android:layout_marginBottom="24dp" />
 
+        <CheckBox
+            android:id="@+id/checkboxUpdateOnPress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Оновлювати за натисканням"
+            android:textSize="18sp"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Частота оновлення показників компасу (ms)"
+            android:textSize="24sp" />
+
         <EditText
             android:id="@+id/editCompassUpdateTime"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Частота ооновлення показників компасу (ms)"
             android:inputType="number"
-            />
+            android:textSize="24sp"
+            android:layout_marginBottom="24dp" />
 
         <!-- Save Button -->
         <Button

@@ -4,6 +4,7 @@ import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.SeekBar;
 import android.widget.Spinner;
@@ -20,6 +21,7 @@ public class FrequencyActivity extends AppCompatActivity {
 
     private SharedPreferences preferences;
     private EditText editCompassUpdateTime;
+    private CheckBox checkboxUpdateOnPress;
 
     private static final String PREFS_NAME = "FrequencyPrefs";
 
@@ -32,6 +34,7 @@ public class FrequencyActivity extends AppCompatActivity {
         editGlobalPause = findViewById(R.id.editGlobalPause);
         editDetectionInterval = findViewById(R.id.editDetectionInterval);
         editCompassUpdateTime = findViewById(R.id.editCompassUpdateTime);
+        checkboxUpdateOnPress = findViewById(R.id.checkboxUpdateOnPress);
 
         spinnerDetectionMode = findViewById(R.id.spinnerDetectionMode);
         buttonSave = findViewById(R.id.buttonSaveFrequency);
@@ -58,6 +61,7 @@ public class FrequencyActivity extends AppCompatActivity {
         int globalPause = preferences.getInt("global_sound_pause_ms", 500);
         int detectionInterval = preferences.getInt("detection_interval_value", 5);
         int compassUpdate = preferences.getInt("compass_update_interval_ms", 3000);
+        boolean updateOnPress = preferences.getBoolean("compass_update_on_press", false);
 
         String detectionMode = preferences.getString("detection_interval_mode", "Seconds");
 
@@ -65,6 +69,7 @@ public class FrequencyActivity extends AppCompatActivity {
         editGlobalPause.setText(String.valueOf(globalPause));
         editDetectionInterval.setText(String.valueOf(detectionInterval));
         editCompassUpdateTime.setText(String.valueOf(compassUpdate));
+        checkboxUpdateOnPress.setChecked(updateOnPress);
 
 
         int spinnerPosition = detectionMode.equals("Frames") ? 1 : 0;
@@ -76,6 +81,7 @@ public class FrequencyActivity extends AppCompatActivity {
             int globalPause = Integer.parseInt(editGlobalPause.getText().toString());
             int detectionInterval = Integer.parseInt(editDetectionInterval.getText().toString());
             int compassUpdate = Integer.parseInt(editCompassUpdateTime.getText().toString());
+            boolean updateOnPress = checkboxUpdateOnPress.isChecked();
             String detectionMode = spinnerDetectionMode.getSelectedItem().toString();
 
             SharedPreferences.Editor editor = preferences.edit();
@@ -84,6 +90,7 @@ public class FrequencyActivity extends AppCompatActivity {
             editor.putInt("detection_interval_value", detectionInterval);
             editor.putString("detection_interval_mode", detectionMode);
             editor.putInt("compass_update_interval_ms", compassUpdate);
+            editor.putBoolean("compass_update_on_press", updateOnPress);
             editor.apply();
 
             Toast.makeText(this, "Налаштування збережено", Toast.LENGTH_SHORT).show();
