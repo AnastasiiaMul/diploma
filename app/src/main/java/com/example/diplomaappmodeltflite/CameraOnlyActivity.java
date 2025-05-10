@@ -3,12 +3,14 @@ package com.example.diplomaappmodeltflite;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.Size;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -58,6 +60,7 @@ public class CameraOnlyActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera_only);
+
 
         /*NavigationApi.getNavigator(this, new NavigationApi.NavigatorListener() {
             @Override
@@ -118,6 +121,7 @@ public class CameraOnlyActivity extends AppCompatActivity {
         overlayView = findViewById(R.id.overlayViewOnly);
         detectionResultsTextView = findViewById(R.id.detectionResultsTextView);
 
+        overlayView.setModelInputSize(640, 640);
         Button backBtn = findViewById(R.id.btnBack);
         backBtn.setOnClickListener(v -> finish());
 
@@ -188,23 +192,40 @@ public class CameraOnlyActivity extends AppCompatActivity {
 
         preview.setSurfaceProvider(cameraPreview.getSurfaceProvider());
 
-        cameraPreview.post(() -> {
-            overlayView.setPreviewSize(cameraPreview.getWidth(), cameraPreview.getHeight());
-        });
+        cameraPreview.postDelayed(() -> {
+            int width = cameraPreview.getWidth();
+            int height = cameraPreview.getHeight();
+            overlayView.setPreviewSize(width, height);
+            Log.d("OverlayView", "Delayed preview size set to: " + width + "x" + height);
+        }, 200); // delay in ms
+
 
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setResolutionSelector(new ResolutionSelector.Builder()
                         .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
                         .setResolutionStrategy(new ResolutionStrategy(
-                                new Size(640, 640),
+                                new Size(1280, 720),
                                 ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER))
                         .build())
                 .build();
 
         imageAnalysis.setAnalyzer(inferenceExecutor, imageProxy -> {
             if (imageProxy.getImage() != null) {
-                detectionProcessor.process(CameraUtils.toBitmap(imageProxy.getImage()));
+                int rotation = imageProxy.getImageInfo().getRotationDegrees();
+                Bitmap bitmap = CameraUtils.toBitmap(imageProxy.getImage(), rotation);
+
+                // Resize bitmap to model input size
+                Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
+
+                // Set model input size for overlay (used for scaling)
+                overlayView.setModelInputSize(640, 640);
+
+                // Pass original preview dimensions for overlay scaling
+                overlayView.setPreviewSize(cameraPreview.getWidth(), cameraPreview.getHeight());
+
+                // Run detection
+                detectionProcessor.process(resizedBitmap);
             }
             imageProxy.close();
         });
@@ -219,6 +240,39 @@ public class CameraOnlyActivity extends AppCompatActivity {
         if (soundPool != null) soundPool.release();
         if (inferenceExecutor != null) inferenceExecutor.shutdown();
         if (objectDetectorHelper != null) objectDetectorHelper.close();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        cameraPreview.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                int width = cameraPreview.getWidth();
+                int height = cameraPreview.getHeight();
+                if (width > 0 && height > 0) {
+                    overlayView.setPreviewSize(width, height);
+                    overlayView.invalidate();
+                    Log.d("OverlayView", "GlobalLayout: set preview size to " + width + "x" + height);
+                    cameraPreview.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                }
+            }
+        });
+
+        cameraPreview.postDelayed(() -> {
+            int width = cameraPreview.getWidth();
+            int height = cameraPreview.getHeight();
+            overlayView.setPreviewSize(width, height);
+            Log.d("OverlayView", "onResume: Re-set preview size to " + width + "x" + height);
+        }, 200);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        overlayView.setResults(null); // Clear old boxes
+        overlayView.invalidate();
     }
 }
 

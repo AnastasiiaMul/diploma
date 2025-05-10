@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import java.util.List;
@@ -15,8 +16,8 @@ public class OverlayView extends View {
     private Paint textPaint;
     private int modelInputWidth = 640;
     private int modelInputHeight = 640;
-    private int previewWidth = 1080;
-    private int previewHeight = 2400;
+    private int previewWidth = 1280;
+    private int previewHeight = 720;
 
     public OverlayView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -52,33 +53,51 @@ public class OverlayView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (results != null) {
-            float scaleX = (float) getWidth() / modelInputWidth;
-            float scaleY = (float) getHeight() / modelInputHeight;
+        float viewWidth = getWidth();
+        float viewHeight = getHeight();
 
+        Log.d("OverlayView", "Drawing on canvas: view=" + viewWidth + "x" + viewHeight +
+                ", preview=" + previewWidth + "x" + previewHeight);
+
+        if (results != null) {
+            float viewRatio = viewWidth / viewHeight;
+            float modelRatio = (float) modelInputWidth / modelInputHeight;
+
+            float scale;
+            float dx = 0, dy = 0;
+
+            if (viewRatio > modelRatio) {
+                scale = viewHeight / modelInputHeight;
+                dx = (viewWidth - modelInputWidth * scale) / 2;
+            } else {
+                scale = viewWidth / modelInputWidth;
+                dy = (viewHeight - modelInputHeight * scale) / 2;
+            }
+
+            // Draw debug frame
+            Paint debugPaint = new Paint();
+            debugPaint.setColor(Color.RED);
+            debugPaint.setStrokeWidth(4f);
+            debugPaint.setStyle(Paint.Style.STROKE);
+            canvas.drawRect(dx, dy, dx + modelInputWidth * scale, dy + modelInputHeight * scale, debugPaint);
 
             for (DetectionResult result : results) {
-                // Draw bounding box
-                float left = result.left * scaleX;
-                float top = result.top * scaleY;
-                float right = result.right * scaleX;
-                float bottom = result.bottom * scaleY;
+                float left = result.left * scale + dx;
+                float top = result.top * scale + dy;
+                float right = result.right * scale + dx;
+                float bottom = result.bottom * scale + dy;
 
                 canvas.drawRect(left, top, right, bottom, boxPaint);
 
-                // Display label: "#ID Class (Confidence)"
-                String className = CocoLabels.LABELS[result.detectedClass]; //diplays cocc
-                //String className = CocoLabels.LABELS_MODEL1[result.detectedClass]; //diplays trained model
+                String className = CocoLabels.LABELS[result.detectedClass];
                 String label = "#" + result.objectId + " " + className +
                         " (" + String.format("%.1f", result.confidence * 100) + "%)";
 
-                // Draw background for label
                 float textWidth = textPaint.measureText(label);
                 float textSize = textPaint.getTextSize();
                 canvas.drawRect(left, top - textSize - 10, left + textWidth + 10, top, boxPaint);
-
-                // Draw text label
-                canvas.drawText(label, left + 5, top - 10, textPaint);            }
+                canvas.drawText(label, left + 5, top - 10, textPaint);
+            }
         }
     }
 }

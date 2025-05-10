@@ -197,7 +197,7 @@ public class DetectionProcessor {
                     if (objectSound.startsWith("content://") || objectSound.startsWith("file://")) {
                         try {
                             if (mediaPlayer != null) mediaPlayer.release();
-                            Uri uri = Uri.parse(sectorSoundName);
+                            Uri uri = Uri.parse(objectSound);
                             try {
                                 if (mediaPlayer != null) {
                                     mediaPlayer.release();
@@ -235,11 +235,16 @@ public class DetectionProcessor {
                 lastPlayedTimePerObject.put(det.objectId, now);
                 lastGlobalSoundTime = now;
             }
-
-            resultText.append(String.format(Locale.US,
-                    "ID %d | Class %d | %.1f%% | Sector %d | Distance: %.2f m\n",
-                    det.objectId, det.detectedClass, det.confidence * 100, sectorId, distance));
-
+            String className = CocoLabels.getLabel(det.detectedClass);
+            if (distance >= 0) {
+                resultText.append(String.format(Locale.US,
+                        "%s | %.1f%% | Сектор %d | Дистанція: %.2f m\n",
+                        className, det.confidence * 100, sectorId, distance));
+            } else {
+                resultText.append(String.format(Locale.US,
+                        "%s | %.1f%% | Сектор %d\n",
+                        className, det.confidence * 100, sectorId));
+            }
             /*sessionLogger.log("Detected object ID=" + det.objectId +
                     ", Class=" + det.detectedClass +
                     ", Confidence=" + det.confidence);*/

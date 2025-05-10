@@ -15,7 +15,7 @@ import java.util.List;
 
 public class CameraUtils {
 
-    public static Bitmap toBitmap(Image image) {
+    public static Bitmap toBitmap(Image image, int rotationDegrees) {
         YuvImage yuvImage = toYuvImage(image);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         yuvImage.compressToJpeg(
@@ -24,7 +24,8 @@ public class CameraUtils {
         Bitmap bitmap = BitmapFactory.decodeByteArray(jpegBytes, 0, jpegBytes.length);
 
         Matrix matrix = new Matrix();
-        matrix.postRotate(90); // Adjust rotation if needed
+        //matrix.postRotate(90); // Adjust rotation if needed
+        matrix.postRotate(rotationDegrees);
         return Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
     }
 

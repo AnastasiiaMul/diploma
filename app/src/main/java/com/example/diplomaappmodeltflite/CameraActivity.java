@@ -23,6 +23,7 @@ import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
@@ -37,6 +38,7 @@ import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.common.util.concurrent.ListenableFuture;
+
 import androidx.camera.core.resolutionselector.ResolutionSelector;
 import androidx.camera.core.resolutionselector.AspectRatioStrategy;
 import androidx.camera.core.resolutionselector.ResolutionStrategy;
@@ -45,7 +47,9 @@ import androidx.fragment.app.Fragment;
 import android.media.AudioAttributes;
 import android.media.Image;
 import android.media.SoundPool;
+
 import org.tensorflow.lite.Interpreter;
+
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -55,6 +59,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -147,19 +152,19 @@ public class CameraActivity extends AppCompatActivity {
         requestCurrentLocation();
 
         compassManager = new CompassManager(this);
-        if(!updateOnPress)
+        if (!updateOnPress)
             Log.d("Compass", "Compass listener registered");
-            compassManager.setCompassListener(azimuth -> {
-                Log.d("Compass", "Received azimuth update: " + azimuth);
-                currentAzimuth = azimuth;
+        compassManager.setCompassListener(azimuth -> {
+            Log.d("Compass", "Received azimuth update: " + azimuth);
+            currentAzimuth = azimuth;
 
-                long now = System.currentTimeMillis();
-                if (now - lastCompassUpdate >= compassUpdateInterval) {
-                    Log.d("Compass", "Updating azimuth display (interval passed)");
-                    updateAzimuthDisplay();
-                    lastCompassUpdate = now;
-                } else Log.d("Compass", "Skipping update (interval not passed)");
-            });
+            long now = System.currentTimeMillis();
+            if (now - lastCompassUpdate >= compassUpdateInterval) {
+                Log.d("Compass", "Updating azimuth display (interval passed)");
+                updateAzimuthDisplay();
+                lastCompassUpdate = now;
+            } else Log.d("Compass", "Skipping update (interval not passed)");
+        });
 
         compassManager.startListening();
 
@@ -172,6 +177,7 @@ public class CameraActivity extends AppCompatActivity {
         previewView.setOnClickListener(v -> startActivity(new Intent(this, CameraOnlyActivity.class)));
 
         objectDetectorHelper = new ObjectDetectorHelper(this);
+
 
         soundPool = new SoundPool.Builder()
                 .setMaxStreams(5)
@@ -226,8 +232,10 @@ public class CameraActivity extends AppCompatActivity {
             Intent intent = new Intent(CameraActivity.this, MainActivity.class);
             startActivity(intent);
         });
+
     }
 
+    @OptIn(markerClass = androidx.camera.core.ExperimentalGetImage.class)
     private void bindCamera(@NonNull ProcessCameraProvider cameraProvider) {
         Preview preview = new Preview.Builder()
                 .setResolutionSelector(new ResolutionSelector.Builder()
@@ -249,6 +257,7 @@ public class CameraActivity extends AppCompatActivity {
             overlayView.setPreviewSize(previewView.getWidth(), previewView.getHeight());
         });
 
+
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                 .setResolutionSelector(new ResolutionSelector.Builder()
@@ -259,7 +268,26 @@ public class CameraActivity extends AppCompatActivity {
                         .build())
                 .build();
 
-        imageAnalysis.setAnalyzer(ContextCompat.getMainExecutor(this), this::analyzeImage);
+        imageAnalysis.setAnalyzer(inferenceExecutor, imageProxy -> {
+            if (imageProxy.getImage() != null) {
+                int rotation = imageProxy.getImageInfo().getRotationDegrees();
+                Bitmap bitmap = CameraUtils.toBitmap(imageProxy.getImage(), rotation);
+
+                // Resize bitmap to model input size
+                Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
+
+                // Set model input size for overlay (used for scaling)
+                overlayView.setModelInputSize(640, 640);
+
+                // Pass original preview dimensions for overlay scaling
+                overlayView.setPreviewSize(previewView.getWidth(), previewView.getHeight());
+
+                // Run detection
+                detectionProcessor.process(resizedBitmap);
+            }
+            imageProxy.close();
+        });
+
 
         cameraProvider.unbindAll();
         cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
@@ -275,9 +303,11 @@ public class CameraActivity extends AppCompatActivity {
 
         frameCounter++;
         if (frameCounter % FRAME_SKIP_INTERVAL == 0) {
-            Bitmap bitmap = CameraUtils.toBitmap(image);
-            Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 640, 640, true);
-            detectionProcessor.process(resizedBitmap);
+            int rotationDegrees = imageProxy.getImageInfo().getRotationDegrees();
+            Bitmap bitmap = CameraUtils.toBitmap(imageProxy.getImage(), rotationDegrees);
+            overlayView.setModelInputSize(640, 640);
+            overlayView.setPreviewSize(previewView.getWidth(), previewView.getHeight());
+            detectionProcessor.process(bitmap);
         }
 
         imageProxy.close();
@@ -360,6 +390,7 @@ public class CameraActivity extends AppCompatActivity {
             }
         });
     }
+
     private void updateAzimuthDisplay() {
         Log.d("Compass", "updateAzimuthDisplay() called. Azimuth: " + currentAzimuth + ", Target: " + targetBearing);
         runOnUiThread(() -> {
@@ -367,8 +398,6 @@ public class CameraActivity extends AppCompatActivity {
             azimuthTextView.setText(text);
         });
     }
-
-
 
 
     private void updateFullNavigationInfo(Location currentLocation) {
@@ -426,6 +455,13 @@ public class CameraActivity extends AppCompatActivity {
         if (compassManager != null) {
             compassManager.startListening();
         }
+
+        previewView.postDelayed(() -> {
+            int width = previewView.getWidth();
+            int height = previewView.getHeight();
+            overlayView.setPreviewSize(width, height);
+            Log.d("OverlayView", "onResume: Re-set preview size to " + width + "x" + height);
+        }, 200);
     }
 
     @Override
@@ -439,5 +475,8 @@ public class CameraActivity extends AppCompatActivity {
         if (compassManager != null) {
             compassManager.stopListening();
         }
+
+        overlayView.setResults(null); // Clear old boxes
+        overlayView.invalidate();
     }
 }
