@@ -18,6 +18,22 @@
             android:textSize="24sp"/>
 
         <Button
+            android:id="@+id/btnTrip"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="Подорожі"
+            android:textSize="24sp"
+            android:layout_marginTop="12dp" />
+
+        <Button
+            android:id="@+id/btnHistory"
+            android:layout_width="match_parent"
+            android:layout_height="80dp"
+            android:text="Історія подорожей"
+            android:textSize="24sp"
+            android:layout_marginTop="12dp" />
+
+        <Button
             android:id="@+id/sectorsSettingsButton"
             android:layout_width="match_parent"
             android:layout_height="80dp"
@@ -46,22 +62,6 @@
             android:layout_width="match_parent"
             android:layout_height="80dp"
             android:text="Налаштування частоти"
-            android:textSize="24sp"
-            android:layout_marginTop="12dp" />
-
-        <Button
-            android:id="@+id/btnTrip"
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:text="Подорожі"
-            android:textSize="24sp"
-            android:layout_marginTop="12dp" />
-
-        <Button
-            android:id="@+id/btnHistory"
-            android:layout_width="match_parent"
-            android:layout_height="80dp"
-            android:text="Історія подорожей"
             android:textSize="24sp"
             android:layout_marginTop="12dp" />
 

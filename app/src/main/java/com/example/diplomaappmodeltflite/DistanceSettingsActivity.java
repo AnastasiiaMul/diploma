@@ -77,7 +77,7 @@ public class DistanceSettingsActivity extends AppCompatActivity {
                         .putInt("numGradations", numGradations)
                         .apply();
 
-                Toast.makeText(this, "Settings saved", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Налаштування збережено", Toast.LENGTH_SHORT).show();
                 finish();
 
             } catch (NumberFormatException e) {

@@ -68,14 +68,18 @@ public class ObjectsSoundsSettingsActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (requestCode == REQUEST_CODE_SELECT_AUDIO && resultCode == RESULT_OK && data != null) {
+            Uri uri = data.getData();
             String uriString = data.getData().toString();
 
             // Save to preferences
             ObjectSoundPreferences.saveSoundForObject(this, objectType, uriString);
 
+            // Extract actual file name
+            String fileName = getFileNameFromUri(uri);
+
             new AlertDialog.Builder(this)
                     .setTitle("Готово")
-                    .setMessage("Обрано користувацький звук:\n" + uriString)
+                    .setMessage("Обрано користувацький звук:\n" + fileName)
                     .setPositiveButton("ОК", (d, w) -> finish())
                     .show();
         }
@@ -93,33 +97,37 @@ public class ObjectsSoundsSettingsActivity extends AppCompatActivity {
             mediaPlayer.setOnCompletionListener(mp -> {
                 mp.release();
                 mediaPlayer = null;
-                showConfirmationDialog(soundName); // show confirmation after sound finishes playing
+                showConfirmationDialog(soundName, soundName); // show confirmation after sound finishes playing
             });
             mediaPlayer.start();
         } else {
             // If sound not found, immediately show confirmation
-            showConfirmationDialog(soundName);
+            showConfirmationDialog(soundName, soundName);
         }
+
         if (soundName.startsWith("content://") || soundName.startsWith("file://")) {
             try {
-                mediaPlayer = MediaPlayer.create(context, Uri.parse(soundName));
+                Uri uri = Uri.parse(soundName);
+                mediaPlayer = MediaPlayer.create(context, uri);
+                String label = getFileNameFromUri(uri);
+
                 mediaPlayer.setOnCompletionListener(mp -> {
                     mp.release();
                     mediaPlayer = null;
-                    showConfirmationDialog(soundName);
+                    showConfirmationDialog(soundName, label); // use actual file name
                 });
                 mediaPlayer.start();
             } catch (Exception e) {
                 e.printStackTrace();
-                showConfirmationDialog(soundName); // fallback
+                String label = getFileNameFromUri(Uri.parse(soundName));
+                showConfirmationDialog(soundName, label); // fallback
             }
             return;
         }
 
     }
 
-    private void showConfirmationDialog(String soundName) {
-        String label;
+    private void showConfirmationDialog(String soundName, String label) {
         if (soundName.startsWith("content://") || soundName.startsWith("file://")) {
             label = getFileNameFromUri(Uri.parse(soundName));
         } else {

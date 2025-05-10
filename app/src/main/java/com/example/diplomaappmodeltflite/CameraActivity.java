@@ -148,16 +148,17 @@ public class CameraActivity extends AppCompatActivity {
 
         compassManager = new CompassManager(this);
         if(!updateOnPress)
+            Log.d("Compass", "Compass listener registered");
             compassManager.setCompassListener(azimuth -> {
+                Log.d("Compass", "Received azimuth update: " + azimuth);
                 currentAzimuth = azimuth;
 
-                if (!updateOnPress) {
-                    long now = System.currentTimeMillis();
-                    if (now - lastCompassUpdate >= compassUpdateInterval) {
-                        updateAzimuthDisplay();
-                        lastCompassUpdate = now;
-                    }
-                }
+                long now = System.currentTimeMillis();
+                if (now - lastCompassUpdate >= compassUpdateInterval) {
+                    Log.d("Compass", "Updating azimuth display (interval passed)");
+                    updateAzimuthDisplay();
+                    lastCompassUpdate = now;
+                } else Log.d("Compass", "Skipping update (interval not passed)");
             });
 
         compassManager.startListening();
@@ -360,6 +361,7 @@ public class CameraActivity extends AppCompatActivity {
         });
     }
     private void updateAzimuthDisplay() {
+        Log.d("Compass", "updateAzimuthDisplay() called. Azimuth: " + currentAzimuth + ", Target: " + targetBearing);
         runOnUiThread(() -> {
             String text = String.format(Locale.US, "Кут руху: %.1f°\nЦільовий кут: %.1f°", currentAzimuth, targetBearing);
             azimuthTextView.setText(text);
