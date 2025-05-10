@@ -7,6 +7,8 @@ import android.graphics.Bitmap;
 import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -14,7 +16,9 @@ import androidx.camera.view.PreviewView;
 
 import org.tensorflow.lite.Interpreter;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -49,6 +53,11 @@ public class DetectionProcessor {
     private long lastDetectionTimestamp = 0;
     private int frameCounter = 0;
     private final Set<Integer> loadedSoundIds = new HashSet<>();
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private boolean isPlayingSoundPair = false;
+    private final Deque<SoundTask> pendingSounds = new ArrayDeque<>();
+
+
 
 
     private static final Map<Integer, Float> OBJECT_HEIGHTS = new HashMap<Integer, Float>() {{
@@ -139,6 +148,7 @@ public class DetectionProcessor {
         overlayView.setResults(finalDetections);
 
         StringBuilder resultText = new StringBuilder();
+        long now = System.currentTimeMillis();
 
         for (DetectionResult det : finalDetections) {
             float boxHeight = det.bottom - det.top;
@@ -154,87 +164,13 @@ public class DetectionProcessor {
             int sectorId = (int) ((objectCenterX / bitmap.getWidth()) * sectorCount) + 1;
             sectorId = Math.min(sectorId, sectorCount);
 
-            long now = System.currentTimeMillis();
-            boolean canPlayGlobal = now - lastGlobalSoundTime > globalSoundPauseMs;
-            Long lastObjectSoundTime = lastPlayedTimePerObject.get(det.objectId);
-            boolean canPlayObject = lastObjectSoundTime == null || (now - lastObjectSoundTime > objectSoundCooldownMs);
+            Long lastTime = lastPlayedTimePerObject.get(det.objectId);
 
-
-            if (canPlayGlobal && canPlayObject) {
-                // Sector sound
-                String sectorSoundName = SectorSoundManager.getSoundForSector(context, sectorId);
-                if (sectorSoundName != null && !sectorSoundName.isEmpty()) {
-                    float quietVolume = 0.05f;
-                    if (sectorSoundName.startsWith("content://") || sectorSoundName.startsWith("file://")) {
-                        try {
-                            if (mediaPlayer != null) {
-                                mediaPlayer.release();
-                            }
-                            mediaPlayer = MediaPlayer.create(context, Uri.parse(sectorSoundName));
-                            mediaPlayer.setOnCompletionListener(mp -> {
-                                mp.release();
-                                mediaPlayer = null;
-                            });
-                            mediaPlayer.setVolume(quietVolume, quietVolume);
-                            mediaPlayer.start();
-                        } catch (Exception e) {
-                            Log.e("SOUND", "Failed to play URI sector sound", e);
-                        }
-                    } else {
-                        Integer sectorSoundId = sectorSoundMap.get(sectorId);
-                        if (sectorSoundId != null) {
-                            soundPool.play(sectorSoundId, quietVolume, quietVolume, 1, 0, 1.0f);
-                            Log.d("SOUND", "Played preloaded system sound for sector " + sectorId);
-                        }
-                    }
-                }
-
-                // Object sound
-                String objectName = CocoLabels.getLabel(det.detectedClass);
-                String objectSound = ObjectSoundPreferences.getSoundForObject(context, objectName);
-                if (objectSound != null && !objectSound.isEmpty()) {
-                    float volume = DistanceSettingsActivity.getVolumeForDistance(context, distance);
-                    if (objectSound.startsWith("content://") || objectSound.startsWith("file://")) {
-                        try {
-                            if (mediaPlayer != null) mediaPlayer.release();
-                            Uri uri = Uri.parse(objectSound);
-                            try {
-                                if (mediaPlayer != null) {
-                                    mediaPlayer.release();
-                                }
-                                mediaPlayer = MediaPlayer.create(context, Uri.parse(sectorSoundName));
-                                if (mediaPlayer != null) {
-                                    mediaPlayer.setVolume(0, 1);
-                                    mediaPlayer.setOnCompletionListener(mp -> {
-                                        mp.release();
-                                        mediaPlayer = null;
-                                    });
-                                    mediaPlayer.start();
-                                } else {
-                                    Log.e("SOUND", "MediaPlayer is null for URI: " + sectorSoundName);
-                                }
-
-                            } catch (Exception e) {
-                                Log.e("SOUND", "Failed to play URI sector sound: " + uri, e);
-                            }
-
-                            mediaPlayer.setVolume(volume, volume);
-                            mediaPlayer.start();
-                        } catch (Exception e) {
-                            Log.e("SOUND", "Failed to play object URI sound", e);
-                        }
-                    } else {
-                        int resId = context.getResources().getIdentifier(objectSound.toLowerCase(), "raw", context.getPackageName());
-                        if (resId != 0) {
-                            int objectSoundId = soundPool.load(context, resId, 1);
-                            soundPool.play(objectSoundId, volume, volume, 1, 0, 1.0f);
-                        }
-                    }
-                }
-
+            if (lastTime == null || (now - lastTime > objectSoundCooldownMs)) {
+                pendingSounds.add(new SoundTask(sectorId, det.detectedClass, distance));
                 lastPlayedTimePerObject.put(det.objectId, now);
-                lastGlobalSoundTime = now;
             }
+
             String className = CocoLabels.getLabel(det.detectedClass);
             if (distance >= 0) {
                 resultText.append(String.format(Locale.US,
@@ -251,22 +187,114 @@ public class DetectionProcessor {
         }
 
         detectionResultsTextView.post(() -> detectionResultsTextView.setText(resultText.toString()));
+        if (!isPlayingSoundPair) playNextSoundPair();
     }
 
-    private float estimateDistance(DetectionResult det) {
-        float boxHeight = det.bottom - det.top;
-        if (OBJECT_HEIGHTS.containsKey(det.detectedClass)) {
-            float realHeight = OBJECT_HEIGHTS.get(det.detectedClass);
-            return Math.max(0, (realHeight * FOCAL_LENGTH) / (boxHeight * 0.5f));
+    private void playNextSoundPair() {
+        if (pendingSounds.isEmpty()) {
+            isPlayingSoundPair = false;
+            return;
         }
-        return -1f;
+
+        isPlayingSoundPair = true;
+        SoundTask task = pendingSounds.poll();
+        Log.d("SoundPair", "Playing sector " + task.sectorId + " + object " + task.classId);
+
+        playSectorSound(task.sectorId);
+
+        handler.postDelayed(() -> {
+            playObjectSound(task.classId, task.distance);
+            handler.postDelayed(this::playNextSoundPair, globalSoundPauseMs);
+        }, 500); // Delay between sector and object sound
     }
 
-    private int calculateSector(DetectionResult det, float imageWidth) {
-        float centerX = (det.left + det.right) / 2f;
-        int sectorCount = SectorSoundManager.getNumberOfSectors(context);
-        int sectorId = (int) ((centerX / imageWidth) * sectorCount) + 1;
-        return Math.min(sectorId, sectorCount);
+    private static class SoundTask {
+        int sectorId, classId;
+        float distance;
+
+        SoundTask(int sectorId, int classId, float distance) {
+            this.sectorId = sectorId;
+            this.classId = classId;
+            this.distance = distance;
+        }
+    }
+
+    private void playSectorSound(int sectorId) {
+        String sectorSoundName = SectorSoundManager.getSoundForSector(context, sectorId);
+        float quietVolume = 0.05f;
+
+        if (sectorSoundName != null && !sectorSoundName.isEmpty()) {
+            if (sectorSoundName.startsWith("content://") || sectorSoundName.startsWith("file://")) {
+                try {
+                    if (mediaPlayer != null) mediaPlayer.release();
+                    mediaPlayer = MediaPlayer.create(context, Uri.parse(sectorSoundName));
+                    if (mediaPlayer != null) {
+                        mediaPlayer.setVolume(quietVolume, quietVolume);
+                        mediaPlayer.setOnCompletionListener(mp -> {
+                            mp.release();
+                            mediaPlayer = null;
+                        });
+                        mediaPlayer.start();
+                    }
+                } catch (Exception e) {
+                    Log.e("SOUND", "Failed to play sector URI sound", e);
+                }
+            } else {
+                Integer soundId = sectorSoundMap.get(sectorId);
+                if (soundId != null) soundPool.play(soundId, quietVolume, quietVolume, 1, 0, 1f);
+            }
+        }
+    }
+
+    private void playObjectSound(int classId, float distance) {
+        String objectName = CocoLabels.getLabel(classId);
+        String objectSound = ObjectSoundPreferences.getSoundForObject(context, objectName);
+        float volume = DistanceSettingsActivity.getVolumeForDistance(context, distance);
+
+        Log.d("ObjectSound", "Resolved object: " + objectName + ", Sound: " + objectSound + ", Volume: " + volume);
+
+        if (objectSound != null && !objectSound.isEmpty()) {
+            if (objectSound.startsWith("content://") || objectSound.startsWith("file://")) {
+                try {
+                    if (mediaPlayer != null) mediaPlayer.release();
+                    mediaPlayer = MediaPlayer.create(context, Uri.parse(objectSound));
+                    if (mediaPlayer != null) {
+                        mediaPlayer.setVolume(volume, volume);
+                        mediaPlayer.setOnCompletionListener(mp -> {
+                            mp.release();
+                            mediaPlayer = null;
+                        });
+                        mediaPlayer.start();
+                        Log.d("ObjectSound", "Playing URI sound: " + objectSound);
+                    } else {
+                        Log.e("ObjectSound", "MediaPlayer is null for URI: " + objectSound);
+                    }
+                } catch (Exception e) {
+                    Log.e("ObjectSound", "Failed to play object URI sound", e);
+                }
+            } else {
+                int resId = context.getResources().getIdentifier(objectSound.toLowerCase(), "raw", context.getPackageName());
+                Log.d("ObjectSound", "Trying to play raw resource: " + objectSound + ", Res ID: " + resId);
+                if (resId != 0) {
+                    mediaPlayer = MediaPlayer.create(context, resId);
+                    if (mediaPlayer != null) {
+                        mediaPlayer.setVolume(volume, volume);
+                        mediaPlayer.setOnCompletionListener(mp -> {
+                            mp.release();
+                            mediaPlayer = null;
+                        });
+                        mediaPlayer.start();
+                        Log.d("ObjectSound", "Played raw sound: " + objectSound);
+                    } else {
+                        Log.e("ObjectSound", "Failed to create MediaPlayer for raw: " + objectSound);
+                    }
+                } else {
+                    Log.e("ObjectSound", "Invalid raw sound name: " + objectSound);
+                }
+            }
+        } else {
+            Log.w("ObjectSound", "No valid sound configured for object: " + objectName);
+        }
     }
 
     private List<DetectionResult> parseYoloOutput(float[][][] output, float imageWidth, float imageHeight) {
