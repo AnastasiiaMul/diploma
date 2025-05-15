@@ -11,17 +11,20 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clickable="true"
+        android:contentDescription="Камера. Натисніть двічі, щоб відкрити повний екран"
         android:foreground="?attr/selectableItemBackground">
 
         <androidx.camera.view.PreviewView
             android:id="@+id/cameraPreview"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"/>
 
         <com.example.diplomaappmodeltflite.OverlayView
             android:id="@+id/overlayView"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"/>
 
         <TextView
             android:id="@+id/detectionResultsTextView"
@@ -31,7 +34,8 @@
             android:padding="8dp"
             android:textColor="@android:color/white"
             android:textSize="16sp"
-            android:background="#66000000" />
+            android:background="#66000000"
+            android:contentDescription="Результати виявлення"/>
 
         <TextView
             android:id="@+id/fpsTextView"
@@ -41,7 +45,8 @@
             android:layout_gravity="bottom|end"
             android:textColor="@android:color/white"
             android:textSize="14sp"
-            android:background="#66000000" />
+            android:background="#66000000"
+            android:importantForAccessibility="no"/>
 
         <Button
             android:id="@+id/btnBack"
@@ -49,7 +54,8 @@
             android:layout_height="wrap_content"
             android:text="Назад"
             android:layout_margin="8dp"
-            android:layout_gravity="start|top"/>
+            android:layout_gravity="start|top"
+            android:contentDescription="Кнопка Назад"/>
     </FrameLayout>
 
     <TextView
@@ -57,7 +63,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:padding="8dp"
-        android:textSize="24sp" />
+        android:textSize="24sp"
+        android:contentDescription="Поточний азимут"/>
 
     <ScrollView
         android:layout_width="match_parent"
@@ -72,7 +79,8 @@
             android:padding="16dp"
             android:text="Поточна локація буде тут..."
             android:textColor="#000000"
-            android:textSize="16sp"/>
+            android:textSize="16sp"
+            android:contentDescription="Навігаційна інформація"/>
     </ScrollView>
 
     <!-- Bottom Half: Google Map (50%)
